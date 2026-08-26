@@ -148,6 +148,38 @@ Model route field or set `ANTHROPIC_MODEL=claude-opus-5`.
 Anthropic requests use the SDK's structured-output parser, a 30-second per-attempt timeout,
 and one automatic retry for connection failures, rate limits, and transient server errors.
 
+## Explore the project with OpenWiki
+
+The generated [`openwiki/`](openwiki/) directory provides an architecture-oriented view of the repository. It connects the catalog, ontology, proposal lifecycle, sandbox runtime, integrations, and operations documentation. Source code and tests remain authoritative.
+
+Install the same OpenWiki CLI version used by the automated documentation workflow:
+
+```bash
+npm install --global openwiki@0.3.3
+```
+
+From the project root, open the interactive relationship graph and documentation reader:
+
+```bash
+openwiki visualize openwiki
+```
+
+The command opens a browser automatically and serves the viewer on port `4321`. If that port is occupied, OpenWiki selects the next available port. To choose a port and start the viewer without opening a browser, run:
+
+```bash
+openwiki visualize openwiki --port 4400 --no-open
+```
+
+Then open <http://127.0.0.1:4400/>. Press `Control-C` in the terminal to stop the viewer.
+
+After meaningful code or source-documentation changes, regenerate the repository documentation with:
+
+```bash
+openwiki code --update --print
+```
+
+An update may require configured provider authentication and can take several minutes. Review generated changes before committing them. Prefer changing source code or source documentation and regenerating the wiki instead of manually editing generated OpenWiki pages. The repository also includes a scheduled and manually dispatchable GitHub Actions workflow at [`.github/workflows/openwiki-update.yml`](.github/workflows/openwiki-update.yml).
+
 ## Test
 
 ```bash
