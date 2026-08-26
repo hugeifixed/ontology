@@ -1,0 +1,18 @@
+{% load partials %}
+{% partialdef proposal-error inline %}
+<div class="proposal-transition alert alert-error alert-soft items-start" role="alert" tabindex="-1" data-result-focus data-announcement="Proposal not created. Review the error message.">
+  <svg xmlns="http://www.w3.org/2000/svg" class="size-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true" focusable="false"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v3.75m9-.75a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 3.75h.008v.008H12v-.008Z"/></svg>
+  <div>
+    <div class="font-semibold">Proposal not created</div>
+    <div class="text-sm">{{ message }}</div>
+    {% if form.errors %}
+      <ul class="mt-2 list-disc ps-5 text-sm">
+        {% for field in form %}
+          {% for error in field.errors %}<li>{{ field.label }}: {{ error }}</li>{% endfor %}
+        {% endfor %}
+        {% for error in form.non_field_errors %}<li>{{ error }}</li>{% endfor %}
+      </ul>
+    {% endif %}
+  </div>
+</div>
+{% endpartialdef proposal-error %}

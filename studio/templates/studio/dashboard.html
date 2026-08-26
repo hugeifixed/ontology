@@ -1,0 +1,609 @@
+{% extends "studio/base.html" %}
+{% load component_tags %}
+
+{% block body %}
+<div
+  class="drawer lg:drawer-open"
+  x-data="{
+    sections: ['overview', 'ontology', 'catalog', 'connections', 'compose', 'proposals'],
+    section: '{{ initial_section|escapejs }}',
+    drawerOpen: false,
+    provider: 'demo',
+    model: 'deterministic-demo-v1',
+    pickProvider(value) {
+      this.provider = value;
+      if (value === 'gemini') this.model = '{{ gemini_model|escapejs }}';
+      if (value === 'anthropic') this.model = '{{ anthropic_model|escapejs }}';
+      if (value === 'demo') this.model = 'deterministic-demo-v1';
+    },
+    resetSectionViewport(value, focusHeading = true) {
+      window.requestAnimationFrame(() => {
+        window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+        if (focusHeading) {
+          document.querySelector(`[data-section='${value}'] h1`)?.focus({ preventScroll: true });
+        }
+      });
+    },
+    showSection(value, updateUrl = true) {
+      if (!this.sections.includes(value)) value = 'overview';
+      this.section = value;
+      this.drawerOpen = false;
+      if (updateUrl) {
+        const url = new URL(window.location.href);
+        if (url.searchParams.get('section') !== value) {
+          url.searchParams.set('section', value);
+          window.history.pushState({ section: value }, '', url);
+        }
+      }
+      this.$nextTick(() => this.resetSectionViewport(value));
+    }
+  }"
+  x-init="history.scrollRestoration = 'manual'; $nextTick(() => resetSectionViewport(section, false))"
+  @popstate.window="showSection(new URL(window.location.href).searchParams.get('section') || 'overview', false)"
+>
+  <input id="studio-drawer" type="checkbox" class="drawer-toggle" x-model="drawerOpen" aria-label="Navigation drawer">
+
+  <div class="drawer-content min-w-0">
+    <header class="navbar sticky top-0 z-30 border-b border-base-300 bg-base-100/95 px-3 backdrop-blur sm:px-4 lg:px-10">
+      <div class="navbar-start w-auto min-w-0 flex-1 gap-2 sm:gap-3">
+        <button type="button" class="btn btn-ghost btn-square drawer-button lg:hidden" aria-label="Open navigation" aria-controls="studio-navigation" :aria-expanded="drawerOpen" @click="drawerOpen = true">
+          <svg xmlns="http://www.w3.org/2000/svg" class="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true" focusable="false"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+        </button>
+        <div class="min-w-0">
+          <div class="text-sm font-semibold leading-tight sm:text-base">Governed workflow studio</div>
+          <div class="hidden text-xs text-base-content/70 sm:block">Commercial lending reference case</div>
+        </div>
+      </div>
+      <div class="navbar-end w-auto shrink-0 gap-2">
+        <span class="badge badge-outline" aria-label="Synthetic demo data">
+          <span class="sm:hidden">Demo data</span>
+          <span class="hidden sm:inline">Synthetic demo data</span>
+        </span>
+      </div>
+    </header>
+
+    <main id="main-content" class="studio-shell py-6 lg:py-8" tabindex="-1">
+      <section data-section="overview" x-show="section === 'overview'" x-transition.opacity.duration.150ms x-cloak>
+        <div class="control-hero overflow-hidden rounded-box bg-secondary text-secondary-content shadow-lg">
+          <div class="grid min-h-[34rem] 2xl:grid-cols-[1.18fr_0.82fr]">
+            <div class="flex flex-col justify-between p-7 sm:p-10 xl:p-14">
+              <div>
+                <div class="flex flex-wrap items-center gap-3">
+                  <span class="utility-type text-xs font-semibold uppercase tracking-[0.16em] text-secondary-content/85">Reference case / 01</span>
+                  <span class="badge h-auto min-h-6 max-w-full whitespace-normal border-secondary-content/25 bg-transparent py-1 text-start leading-tight text-secondary-content">Read only · human approval</span>
+                </div>
+                <h1 class="display-heading mt-8 max-w-4xl text-4xl sm:text-6xl 2xl:text-7xl" tabindex="-1">
+                  Turn a servicing question into a reviewable agent specification.
+                </h1>
+                <p class="mt-7 max-w-2xl text-base leading-relaxed text-secondary-content/85 sm:text-lg">
+                  Follow one commercial loan review from stated intent through a versioned manifest, independent approvals, synthetic tool calls, and sandbox evaluation.
+                </p>
+              </div>
+              <div class="mt-10 flex flex-col gap-5 sm:flex-row sm:items-center">
+                <button class="btn btn-primary" type="button" @click="showSection('compose')">
+                  Start the covenant review
+                  <svg xmlns="http://www.w3.org/2000/svg" class="size-4 rtl:rotate-180" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true" focusable="false"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m9 18 6-6-6-6"/></svg>
+                </button>
+                <span class="text-sm text-secondary-content/70">Synthetic sources only. The demo stops before production.</span>
+              </div>
+            </div>
+
+            <div class="m-4 border border-secondary-content/15 bg-secondary-content/5 p-6 sm:m-6 sm:p-8 xl:m-8">
+              <div class="flex flex-col gap-2 border-b border-secondary-content/15 pb-5 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
+                <div>
+                  <div class="utility-type text-[0.68rem] uppercase tracking-[0.18em] text-secondary-content/70">Control path</div>
+                  <h2 class="mt-1 text-lg font-semibold">Insurance covenant review</h2>
+                </div>
+                <span class="utility-type text-xs text-secondary-content/70">LOAN.COV.01</span>
+              </div>
+              <ol class="control-route mt-5 space-y-1" aria-label="Reference workflow stages">
+                <li class="grid grid-cols-[minmax(0,1fr)_auto] gap-4 border-b border-secondary-content/10 py-3">
+                  <div><div class="font-semibold">Intent captured</div><div class="text-xs text-secondary-content/70">Outcome, requester, and limits</div></div>
+                  <span class="utility-type text-xs text-secondary-content/70">01</span>
+                </li>
+                <li class="grid grid-cols-[minmax(0,1fr)_auto] gap-4 border-b border-secondary-content/10 py-3">
+                  <div><div class="font-semibold">Catalog matched</div><div class="text-xs text-secondary-content/70">Approved capabilities and owners</div></div>
+                  <span class="utility-type text-xs text-secondary-content/70">02</span>
+                </li>
+                <li class="grid grid-cols-[minmax(0,1fr)_auto] gap-4 border-b border-secondary-content/10 py-3">
+                  <div><div class="font-semibold">Proposal drafted</div><div class="text-xs text-secondary-content/70">Typed bindings and access modes</div></div>
+                  <span class="utility-type text-xs text-secondary-content/70">03</span>
+                </li>
+                <li class="grid grid-cols-[minmax(0,1fr)_auto] gap-4 border-b border-secondary-content/10 py-3">
+                  <div><div class="font-semibold">Policy checked</div><div class="text-xs text-secondary-content/70">Code evaluates the control rules</div></div>
+                  <span class="utility-type text-xs text-secondary-content/70">04</span>
+                </li>
+                <li class="grid grid-cols-[minmax(0,1fr)_auto] gap-4 border-b border-secondary-content/10 py-3">
+                  <div><div class="font-semibold">Two approvals</div><div class="text-xs text-secondary-content/70">Business and source owners decide separately</div></div>
+                  <span class="utility-type text-xs text-secondary-content/70">05</span>
+                </li>
+                <li class="grid grid-cols-[minmax(0,1fr)_auto] gap-4 py-3">
+                  <div><div class="font-semibold">Sandbox evaluated</div><div class="text-xs text-secondary-content/70">Synthetic tools, denials, findings, and proof</div></div>
+                  <span class="utility-type text-xs text-secondary-content/70">06</span>
+                </li>
+              </ol>
+            </div>
+          </div>
+          <dl class="grid border-t border-secondary-content/15 bg-secondary-content/5 sm:grid-cols-3" aria-label="Reference catalog facts">
+            <div class="border-b border-secondary-content/15 px-7 py-5 sm:border-e sm:border-b-0">
+              <dt class="utility-type text-[0.68rem] uppercase tracking-[0.16em] text-secondary-content/70">Catalog</dt>
+              <dd class="mt-1 text-lg font-semibold">{{ nodes|length }} concepts / {{ node_type_count }} types</dd>
+            </div>
+            <div class="border-b border-secondary-content/15 px-7 py-5 sm:border-e sm:border-b-0">
+              <dt class="utility-type text-[0.68rem] uppercase tracking-[0.16em] text-secondary-content/70">Lineage</dt>
+              <dd class="mt-1 text-lg font-semibold">{{ edges|length }} typed relationships</dd>
+            </div>
+            <div class="px-7 py-5">
+              <dt class="utility-type text-[0.68rem] uppercase tracking-[0.16em] text-secondary-content/70">Authority</dt>
+              <dd class="mt-1 text-lg font-semibold">Two decisions required</dd>
+            </div>
+          </dl>
+        </div>
+
+        <ol class="mt-6 grid overflow-hidden rounded-box border border-base-300 bg-base-100 xl:grid-cols-3" aria-label="Proposal design sequence">
+          <li class="border-b border-base-300 p-6 xl:border-e xl:border-b-0">
+            <div class="utility-type text-xs text-secondary">01 / MATCH</div>
+            <h2 class="mt-3 text-xl font-semibold">Match against the catalog</h2>
+            <p class="mt-2 text-sm leading-relaxed text-base-content/70">The request is compared with registered owners, controls, access paths, and reusable workflows.</p>
+          </li>
+          <li class="border-b border-base-300 p-6 xl:border-e xl:border-b-0">
+            <div class="utility-type text-xs text-secondary">02 / DRAFT</div>
+            <h2 class="mt-3 text-xl font-semibold">Draft a typed proposal</h2>
+            <p class="mt-2 text-sm leading-relaxed text-base-content/70">The selected model returns structured data. Django resolves each catalog identifier and rejects unknown objects.</p>
+          </li>
+          <li class="p-6">
+            <div class="utility-type text-xs text-secondary">03 / REVIEW</div>
+            <h2 class="mt-3 text-xl font-semibold">Review before sandbox work</h2>
+            <p class="mt-2 text-sm leading-relaxed text-base-content/70">A reviewer sees the bindings, control results, and evidence before releasing the design package.</p>
+          </li>
+        </ol>
+
+        <section class="mt-6 grid overflow-hidden rounded-box border border-base-300 bg-base-100 xl:grid-cols-[0.72fr_1.28fr]" aria-labelledby="responsibility-title">
+          <div class="border-b border-base-300 p-7 xl:border-e xl:border-b-0 xl:p-9">
+            <div class="eyebrow">Workshop question</div>
+            <h2 id="responsibility-title" class="display-heading mt-4 text-4xl">Who owns each boundary?</h2>
+            <p class="mt-5 text-sm leading-relaxed text-base-content/70">Use these four areas to decide where platform capability ends and institutional responsibility begins.</p>
+          </div>
+          <dl class="divide-y divide-base-300">
+            <div class="grid gap-2 p-5 sm:grid-cols-[11rem_minmax(0,1fr)] sm:p-6"><dt class="font-semibold">Agent control plane</dt><dd class="text-sm leading-relaxed text-base-content/70">Routes intent, coordinates model and agent work, records cost, and pauses for human review.</dd></div>
+            <div class="grid gap-2 p-5 sm:grid-cols-[11rem_minmax(0,1fr)] sm:p-6"><dt class="font-semibold">Integration layer</dt><dd class="text-sm leading-relaxed text-base-content/70">Connects approved APIs, data services, event systems, and existing applications.</dd></div>
+            <div class="grid gap-2 p-5 sm:grid-cols-[11rem_minmax(0,1fr)] sm:p-6"><dt class="font-semibold">Institutional controls</dt><dd class="text-sm leading-relaxed text-base-content/70">Owns the ontology, entitlements, data policy, approval authority, and retention rules.</dd></div>
+            <div class="grid gap-2 p-5 sm:grid-cols-[11rem_minmax(0,1fr)] sm:p-6"><dt class="font-semibold">Execution platform</dt><dd class="text-sm leading-relaxed text-base-content/70">A later destination for approved product and pricing workflows. This pilot does not execute there.</dd></div>
+          </dl>
+        </section>
+      </section>
+
+      <section data-section="ontology" x-show="section === 'ontology'" x-transition.opacity.duration.150ms x-cloak>
+        <div class="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
+          <div class="min-w-0">
+            <div class="eyebrow">Institutional ontology</div>
+            <h1 class="section-heading mt-3" tabindex="-1">Trace every approved dependency</h1>
+            <p class="mt-2 max-w-3xl text-base-content/70">
+              Read from the requested outcome to the workflow, agent, tools, and approved data products. Each relationship names the dependency and its owner.
+            </p>
+          </div>
+          <dl class="flex max-w-full flex-wrap gap-x-4 gap-y-1 text-sm text-base-content/70 sm:justify-end" aria-label="Ontology size">
+            <div class="min-w-0">
+              <dt class="sr-only">Ontology nodes</dt>
+              <dd><span class="font-semibold text-base-content">{{ nodes|length }}</span> nodes</dd>
+            </div>
+            <div class="min-w-0">
+              <dt class="sr-only">Typed relationships</dt>
+              <dd><span class="font-semibold text-base-content">{{ edges|length }}</span> edges</dd>
+            </div>
+          </dl>
+        </div>
+
+        <div class="alert mt-5 border-info bg-base-100 text-base-content">
+          <svg xmlns="http://www.w3.org/2000/svg" class="size-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true" focusable="false"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg>
+          <span>The ontology catalogs access paths and responsibilities. It does not copy customer records or document text into the graph.</span>
+        </div>
+
+        <ol class="mt-6 grid gap-5 md:grid-cols-2 xl:grid-cols-3" aria-label="Ontology layers from intent to delivery">
+          {% for layer_name, layer_nodes in ontology_layers %}
+            <li class="min-w-0 rounded-box border border-base-300 bg-base-200/50 p-3 sm:p-4">
+              <div class="mb-3 flex items-center gap-2">
+                <span class="flex size-7 items-center justify-center rounded-full bg-secondary text-xs font-bold text-secondary-content">{{ forloop.counter }}</span>
+                <h2 class="text-sm font-semibold">{{ layer_name }}</h2>
+              </div>
+              <div class="space-y-3">
+                {% for node in layer_nodes %}
+                  <details class="ontology-node collapse collapse-arrow border border-base-300 bg-base-100">
+                    <summary class="collapse-title min-h-11 w-full cursor-pointer p-4 pe-12 text-start">
+                      <div class="flex min-w-0 flex-wrap items-center justify-between gap-2">
+                        <span class="badge badge-ghost badge-sm h-auto min-h-6 max-w-full whitespace-normal py-1 text-start leading-tight">{{ node.get_node_type_display }}</span>
+                        {% component "status_badge" label=node.get_approval_state_display state=node.approval_state size="small" / %}
+                      </div>
+                      <span class="mt-3 block min-w-0 break-words text-sm font-semibold leading-snug">{{ node.name }}</span>
+                    </summary>
+                    <div class="collapse-content px-4 pb-4">
+                        <p class="mt-2 text-xs text-base-content/70">{{ node.description }}</p>
+                        <dl class="mt-4 space-y-2 rounded-box bg-base-200 p-3 text-xs">
+                          <div class="grid grid-cols-[auto_minmax(0,1fr)] gap-3"><dt class="text-base-content/70">Owner</dt><dd class="min-w-0 break-words text-end">{{ node.owner }}</dd></div>
+                          <div class="grid grid-cols-[auto_minmax(0,1fr)] gap-3"><dt class="text-base-content/70">Class</dt><dd class="min-w-0 break-words text-end">{{ node.get_classification_display }}</dd></div>
+                          <div class="grid grid-cols-[auto_minmax(0,1fr)] gap-3"><dt class="text-base-content/70">Slug</dt><dd class="min-w-0 break-all text-end font-mono leading-relaxed">{{ node.slug }}</dd></div>
+                        </dl>
+                    </div>
+                  </details>
+                {% empty %}
+                  <div class="rounded-box border border-dashed border-base-300 p-4 text-xs text-base-content/70">No concepts in this layer.</div>
+                {% endfor %}
+              </div>
+            </li>
+          {% endfor %}
+        </ol>
+
+        <div class="mt-8 card card-border bg-base-100">
+          <div class="card-body">
+            <div class="eyebrow">Typed edge registry</div>
+            <h2 class="card-title">Why each relationship exists</h2>
+            <p class="mt-2 text-xs text-base-content/70 xl:hidden">Scroll horizontally to see every relationship detail.</p>
+            <div class="mt-2 overflow-x-auto" tabindex="0" role="region" aria-label="Ontology relationship table">
+              <table class="table table-sm min-w-[48rem]">
+                <caption class="sr-only">Typed relationships between registered ontology concepts</caption>
+                <thead><tr><th class="text-base-content" scope="col">Source</th><th class="text-base-content" scope="col">Relationship</th><th class="text-base-content" scope="col">Target</th><th class="text-base-content" scope="col">Meaning</th></tr></thead>
+                <tbody>
+                  {% for edge in edges %}
+                    <tr>
+                      <td class="font-medium">{{ edge.source.name }}</td>
+                      <td><span class="badge badge-outline badge-sm font-mono">{{ edge.relation }}</span></td>
+                      <td class="font-medium">{{ edge.target.name }}</td>
+                      <td class="max-w-xl text-sm text-base-content/70">{{ edge.rationale }}</td>
+                    </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section data-section="catalog" x-show="section === 'catalog'" x-transition.opacity.duration.150ms x-cloak>
+        <div>
+          <div class="eyebrow">Approved building blocks</div>
+          <h1 class="section-heading mt-3" tabindex="-1">Reusable catalog objects</h1>
+          <p class="mt-3 max-w-3xl text-base-content/70">Each object records its owner, sensitivity, approval state, and relationships to the rest of the workflow.</p>
+        </div>
+        <div class="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          {% for node in nodes %}
+            {% if node.node_type == 'data_product' or node.node_type == 'workflow' or node.node_type == 'agent_capability' or node.node_type == 'agent_instance' or node.node_type == 'connector' or node.node_type == 'tool' %}
+              <article class="card card-border bg-base-100">
+                <div class="card-body">
+                  <div class="flex flex-wrap items-start justify-between gap-2">
+                    <span class="badge badge-outline badge-sm h-auto min-h-6 max-w-full whitespace-normal py-1 text-start leading-tight">{{ node.get_node_type_display }}</span>
+                    <span class="badge badge-soft badge-sm h-auto min-h-6 max-w-full whitespace-normal py-1 text-start leading-tight {% if node.classification == 'public' %}badge-success{% elif node.classification == 'internal' %}badge-info{% elif node.classification == 'confidential' %}badge-warning{% else %}badge-error{% endif %}">{{ node.get_classification_display }}</span>
+                  </div>
+                  <h2 class="card-title text-lg">{{ node.name }}</h2>
+                  <p class="text-sm text-base-content/70">{{ node.description }}</p>
+                  <div class="mt-auto border-t border-base-300 pt-3 text-xs text-base-content/70">
+                    Domain · {{ node.get_business_domain_display }}<br>
+                    Owner · {{ node.owner }}<br>
+                    Reference · {{ node.source_reference|default:"Catalog metadata" }}
+                  </div>
+                </div>
+              </article>
+            {% endif %}
+          {% endfor %}
+        </div>
+      </section>
+
+      <section data-section="connections" x-show="section === 'connections'" x-transition.opacity.duration.150ms x-cloak>
+        <div>
+          <div class="eyebrow">Connector boundaries</div>
+          <h1 class="section-heading mt-3" tabindex="-1">How proposals reach models, data, and controls</h1>
+          <p class="mt-3 max-w-3xl text-base-content/70">The model receives intent and catalog metadata. Governed tools handle source access, while policy services decide what the workflow may do.</p>
+        </div>
+
+        <ul class="steps steps-vertical mt-6 w-full xl:steps-horizontal">
+          <li class="step step-secondary">Business intent</li>
+          <li class="step step-secondary">Approved model route</li>
+          <li class="step step-secondary">Typed proposal</li>
+          <li class="step step-secondary">Policy validation</li>
+          <li class="step">Dual approval</li>
+          <li class="step">Sandbox evaluation</li>
+        </ul>
+
+        <div class="mt-6 grid gap-5 xl:grid-cols-3">
+          <article class="card card-border bg-base-100">
+            <div class="card-body">
+              <span class="badge badge-outline w-fit">Model connector</span>
+              <h2 class="card-title">Governed model route</h2>
+              <p class="text-sm text-base-content/70">Gemini Flash or Claude receives intent and approved catalog metadata, then returns schema-constrained JSON.</p>
+              <ul class="mt-2 divide-y divide-base-300 text-sm">
+                <li class="py-2">Provider and model allowlist</li><li class="py-2">Request-scoped or environment key</li><li class="py-2">Keys and raw payloads are not stored</li><li class="py-2">Model has no approval authority</li>
+              </ul>
+            </div>
+          </article>
+          <article class="card card-border bg-base-100">
+            <div class="card-body">
+              <span class="badge badge-outline w-fit">Source connectors</span>
+              <h2 class="card-title">Governed tools and APIs</h2>
+              <p class="text-sm text-base-content/70">Agents invoke purpose-built tools that enforce identity and scope before reaching a file share, database, or policy index.</p>
+              <ul class="mt-2 divide-y divide-base-300 text-sm">
+                <li class="py-2">Document retrieval API</li><li class="py-2">Read-only servicing view</li><li class="py-2">Policy retrieval with citations</li><li class="py-2">No unrestricted network access</li>
+              </ul>
+            </div>
+          </article>
+          <article class="card card-border bg-base-100">
+            <div class="card-body">
+              <span class="badge badge-outline w-fit">Control connectors</span>
+              <h2 class="card-title">Authority and evidence systems</h2>
+              <p class="text-sm text-base-content/70">Identity, policy, review, ticketing, repositories, testing, and deployment remain explicit enterprise integrations.</p>
+              <ul class="mt-2 divide-y divide-base-300 text-sm">
+                <li class="py-2">User and agent identity</li><li class="py-2">Approval and separation of duties</li><li class="py-2">Evidence and cost records</li><li class="py-2">SDLC change intake</li>
+              </ul>
+            </div>
+          </article>
+        </div>
+
+        <div class="alert mt-6 border-warning bg-base-100 text-base-content">
+          <svg xmlns="http://www.w3.org/2000/svg" class="size-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true" focusable="false"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v3.75m9-.75a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 3.75h.008v.008H12v-.008Z"/></svg>
+          <span>OpenWiki and OKF can organize code knowledge and portable metadata. <code>llms.txt</code> helps an agent navigate documentation. Source authorization still belongs in the runtime connector.</span>
+        </div>
+      </section>
+
+      <section data-section="compose" x-show="section === 'compose'" x-transition.opacity.duration.150ms x-cloak>
+        <div>
+          <div class="eyebrow">Cross-domain discovery</div>
+          <h1 class="section-heading mt-3" tabindex="-1">Find what exists before building anything</h1>
+          <p class="mt-3 max-w-4xl text-base-content/70">Describe a business need once. The studio applies a simulated access scope, matches governed metadata across treasury, retail, and commercial-loan servicing, then follows typed ontology relationships to a workflow, data products, and agent boundary.</p>
+        </div>
+
+        <ol class="mt-5 grid overflow-hidden rounded-box border border-base-300 bg-base-100 sm:grid-cols-2 xl:grid-cols-4" aria-label="Catalog discovery sequence">
+          <li class="border-b border-base-300 p-4 sm:border-e xl:border-b-0"><span class="utility-type text-xs text-secondary">01 / SCOPE</span><span class="mt-1 block text-sm font-semibold">Apply hard filters</span></li>
+          <li class="border-b border-base-300 p-4 xl:border-e xl:border-b-0"><span class="utility-type text-xs text-secondary">02 / MATCH</span><span class="mt-1 block text-sm font-semibold">Interpret business terms</span></li>
+          <li class="border-b border-base-300 p-4 sm:border-e sm:border-b-0"><span class="utility-type text-xs text-secondary">03 / TRACE</span><span class="mt-1 block text-sm font-semibold">Follow typed relationships</span></li>
+          <li class="p-4"><span class="utility-type text-xs text-secondary">04 / DECIDE</span><span class="mt-1 block text-sm font-semibold">Reuse, stop, or fill a gap</span></li>
+        </ol>
+
+        <div class="mt-6 grid gap-6 2xl:grid-cols-[0.78fr_1.22fr]">
+          <form
+            class="card card-border min-w-0 bg-base-100"
+            hx-post="{% url 'studio:discover' %}"
+            hx-target="#discovery-results"
+            hx-swap="innerHTML swap:100ms settle:150ms"
+            hx-indicator="#discovery-spinner"
+            hx-disabled-elt="find button[type='submit']"
+            autocomplete="off"
+          >
+            {% csrf_token %}
+            <div class="card-body gap-5">
+              <div>
+                <h2 class="card-title">Search the governed catalog</h2>
+                <p class="mt-1 text-sm leading-relaxed text-base-content/70">This searches approved metadata and curated business concepts—not document contents or customer records.</p>
+              </div>
+              <div class="fieldset min-w-0">
+                <label class="fieldset-legend" for="id_discovery_intent">Business need</label>
+                {{ discovery_form.intent }}
+                <p id="discovery-intent-help" class="label whitespace-normal leading-relaxed text-base-content/70">Use plain language. Do not paste customer data.</p>
+              </div>
+              <div class="fieldset min-w-0">
+                <label class="fieldset-legend" for="id_discovery_profile">Simulated access profile</label>
+                {{ discovery_form.access_profile }}
+                <p id="discovery-profile-help" class="label whitespace-normal leading-relaxed text-base-content/70">The profile filters domains and classifications before ranking. It does not grant real access.</p>
+              </div>
+              <div>
+                <div class="text-xs font-semibold text-base-content/70">Choose a sample scenario</div>
+                <p class="mt-1 text-xs leading-relaxed text-base-content/70">Each option replaces the text above. You can edit it before searching.</p>
+                <div class="mt-2 flex flex-wrap gap-2">
+                  <button type="button" class="btn btn-outline btn-sm h-auto min-h-8 whitespace-normal py-1 text-start" data-discovery-example="Help a treasury seller answer a cash-management RFP using approved proposal and product content.">Treasury RFP</button>
+                  <button type="button" class="btn btn-outline btn-sm h-auto min-h-8 whitespace-normal py-1 text-start" data-discovery-example="Help a retail care-center specialist find the approved procedure for a fee-reversal question.">Retail fee reversal</button>
+                  <button type="button" class="btn btn-outline btn-sm h-auto min-h-8 whitespace-normal py-1 text-start" data-discovery-example="Help commercial loan servicing analysts find insurance requirements and return cited findings for human review.">Loan insurance</button>
+                  <button type="button" class="btn btn-ghost btn-sm h-auto min-h-8 whitespace-normal py-1 text-start" data-discovery-example="Use foot-traffic and local weather data to plan branch staffing next week.">Show a metadata gap</button>
+                </div>
+              </div>
+              <button class="btn btn-secondary btn-block" type="submit" aria-label="Discover catalog path" data-loading-label="Searching catalog">
+                <span id="discovery-spinner" class="loading loading-spinner loading-sm htmx-indicator" aria-hidden="true"></span>
+                <span class="request-label" aria-hidden="true"><span class="request-idle">Discover catalog path</span><span class="request-pending">Searching catalog</span></span>
+              </button>
+            </div>
+          </form>
+
+          <div id="discovery-results" class="fragment-transition min-w-0" aria-busy="false">
+            <div class="flex min-h-96 items-center justify-center rounded-box border border-dashed border-base-300 bg-base-100 p-8 text-center">
+              <div class="max-w-md">
+                <div class="mx-auto grid size-14 place-items-center rounded-full bg-base-200 text-secondary" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" class="size-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="m21 21-4.35-4.35m2.35-5.65a8 8 0 1 1-16 0 8 8 0 0 1 16 0Zm-11-2h6m-6 4h4"/></svg></div>
+                <h2 class="mt-4 text-xl font-semibold">Your catalog path will appear here</h2>
+                <p class="mt-2 text-sm leading-relaxed text-base-content/70">The result will show the hard-filter scope, ranked metadata, typed dependencies, accountable owners, and whether this demo can continue to execution.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="mt-10 border-t border-base-300 pt-8">
+          <div class="eyebrow">Runnable reference slice</div>
+          <h2 class="mt-2 text-3xl font-semibold tracking-tight">Build the governed commercial proposal</h2>
+          <p class="mt-2 max-w-3xl text-base-content/70">This is the one end-to-end adapter implemented in the demo. It ends at a synthetic sandbox evaluation, never production.</p>
+        </div>
+
+        <div class="mt-5 grid gap-6 2xl:grid-cols-[0.85fr_1.15fr]">
+          <div class="min-w-0">
+            <div class="eyebrow mt-5">Reference use case</div>
+            <h3 class="mt-3 text-2xl font-semibold tracking-tight">Commercial loan insurance covenant review</h3>
+            <p class="mt-3 text-base-content/70">Create the proposal with the deterministic reference path or a live model that returns the same structured schema.</p>
+
+            <form
+              class="card card-border mt-5 min-w-0 bg-base-100"
+              hx-post="{% url 'studio:compose-proposal' %}"
+              hx-target="#proposal-workspace"
+              hx-swap="innerHTML swap:100ms settle:150ms"
+              hx-indicator="#compose-spinner"
+              hx-disabled-elt="find button[type='submit']"
+              aria-describedby="compose-safety-note compose-feedback"
+              autocomplete="off"
+              data-api-key-form
+            >
+              {% csrf_token %}
+              <div class="card-body min-w-0 gap-5">
+                <div class="fieldset min-w-0">
+                  <label class="fieldset-legend" for="id_intent">Business intent</label>
+                  {{ proposal_form.intent }}
+                  <p id="intent-help" class="label whitespace-normal leading-relaxed text-base-content/70">Describe the outcome and boundaries; do not paste customer data.</p>
+                </div>
+                <div class="fieldset min-w-0">
+                  <label class="fieldset-legend" for="id_requester_role">Requesting role</label>
+                  {{ proposal_form.requester_role }}
+                </div>
+                <div class="grid gap-4 sm:grid-cols-2">
+                  <div class="fieldset min-w-0">
+                    <label class="fieldset-legend" for="provider">Intent interpreter</label>
+                    <select id="provider" name="provider" class="select w-full" x-model="provider" @change="pickProvider($event.target.value)">
+                      <option value="demo">Deterministic demo</option>
+                      <option value="gemini">Google Gemini — AI Studio</option>
+                      <option value="anthropic">Anthropic Claude</option>
+                    </select>
+                  </div>
+                  <div class="fieldset min-w-0">
+                    <label class="fieldset-legend" for="model-name">Model route</label>
+                    <input id="model-name" name="model_name" class="input w-full font-mono text-sm" x-model="model" autocomplete="off">
+                  </div>
+                </div>
+                <div
+                  class="provider-key-panel"
+                  x-show="provider !== 'demo'"
+                  x-transition:enter="transition duration-150 ease-out"
+                  x-transition:enter-start="opacity-0 -translate-y-1"
+                  x-transition:enter-end="opacity-100 translate-y-0"
+                  x-transition:leave="transition duration-100 ease-in"
+                  x-transition:leave-start="opacity-100 translate-y-0"
+                  x-transition:leave-end="opacity-0 -translate-y-1"
+                  x-cloak
+                >
+                  <div class="fieldset min-w-0">
+                    <label class="fieldset-legend" for="id_api_key">Ephemeral API key</label>
+                    {{ proposal_form.api_key }}
+                    <p id="api-key-help" class="label whitespace-normal leading-relaxed text-base-content/70">Leave blank when the matching environment variable is configured. The server does not store provider keys.</p>
+                    <label class="mt-3 flex min-h-11 cursor-pointer items-start gap-3 rounded-box border border-base-300 p-3">
+                      <input type="checkbox" class="toggle toggle-sm mt-0.5" data-reuse-api-key>
+                      <span class="min-w-0"><span class="block text-sm font-semibold">Reuse in this browser tab</span><span class="mt-1 block text-xs leading-relaxed text-base-content/70">Opt in to browser <code>sessionStorage</code>. Closing the tab forgets the key; unchecking removes it immediately. A git-ignored <code>.env</code> file is recommended.</span></span>
+                    </label>
+                    <p class="mt-2 text-xs text-base-content/70" data-key-storage-status aria-live="polite"></p>
+                  </div>
+                </div>
+                <div id="compose-safety-note" class="alert border-info bg-base-100 text-sm text-base-content">
+                  <span>Only intent and approved ontology metadata are sent to the selected model. No source documents or servicing records are used during composition.</span>
+                </div>
+                <div id="compose-feedback" data-compose-feedback></div>
+                <button class="btn btn-primary btn-block" type="submit" aria-label="Draft proposal" data-loading-label="Drafting proposal">
+                  <span id="compose-spinner" class="loading loading-spinner loading-sm htmx-indicator" aria-hidden="true"></span>
+                  <span class="request-label" aria-hidden="true">
+                    <span class="request-idle">Draft proposal</span>
+                    <span class="request-pending">Drafting proposal</span>
+                  </span>
+                </button>
+                <div class="alert alert-info alert-soft hidden items-start" data-compose-progress>
+                  <span class="loading loading-ring loading-md shrink-0" aria-hidden="true"></span>
+                  <div class="min-w-0 flex-1">
+                    <div class="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+                      <div class="font-semibold" data-compose-progress-title>Draft request started</div>
+                      <div class="utility-type text-xs" aria-hidden="true" data-compose-progress-elapsed>Elapsed · 0s</div>
+                    </div>
+                    <p class="mt-1 text-sm leading-relaxed" role="status" aria-live="polite" aria-atomic="true" data-compose-progress-message>Preparing the request.</p>
+                  </div>
+                </div>
+              </div>
+            </form>
+          </div>
+
+          <div id="proposal-workspace" class="fragment-transition min-w-0" aria-busy="false">
+            {% if latest_proposal %}
+              {% include "studio/partials/proposal_detail.html#proposal-detail" with proposal=latest_proposal instance="workspace" %}
+            {% else %}
+              <div class="flex min-h-[32rem] items-center justify-center rounded-box border border-dashed border-base-300 bg-base-100 p-8 text-center">
+                <div class="max-w-md">
+                  <div class="mx-auto flex size-14 items-center justify-center rounded-full bg-base-200 text-2xl">◇</div>
+                  <h2 class="mt-4 text-xl font-semibold">No proposal yet</h2>
+                  <p class="mt-2 text-sm text-base-content/70">Use the reference intent to create a proposal, export its manifest, approve it from both roles, and run the synthetic sandbox evaluation.</p>
+                </div>
+              </div>
+            {% endif %}
+          </div>
+        </div>
+      </section>
+
+      <section data-section="proposals" x-show="section === 'proposals'" x-transition.opacity.duration.150ms x-cloak>
+        <div>
+          <div class="eyebrow">Proposal registry</div>
+          <h1 class="section-heading mt-3" tabindex="-1">Saved workflow proposals</h1>
+          <p class="mt-3 max-w-3xl text-base-content/70">Open a proposal to inspect its manifest, two approvals, sandbox registration, tool calls, policy decisions, findings, evaluations, and evidence artifacts.</p>
+        </div>
+        <div class="mt-6 grid gap-6 2xl:grid-cols-[0.48fr_1.52fr]">
+          <div class="card card-border bg-base-100">
+            <div class="card-body p-3">
+              <ul class="menu w-full">
+                {% for proposal in proposals %}
+                  <li>
+                    <button
+                      hx-get="{{ proposal.get_absolute_url }}"
+                      hx-target="#proposal-registry-detail"
+                      hx-swap="innerHTML swap:100ms settle:150ms"
+                      hx-disabled-elt="this"
+                      aria-controls="proposal-registry-detail"
+                      aria-label="Open proposal #{{ proposal.id }}: {{ proposal.title }}"
+                      data-loading-label="Loading proposal #{{ proposal.id }}"
+                      type="button"
+                      class="registry-trigger grid grid-cols-[minmax(0,1fr)_auto] items-start gap-2"
+                    >
+                      <span class="min-w-0">
+                        <span class="block break-words font-medium">{{ proposal.title }}</span>
+                        <span class="block text-xs text-base-content/70">#{{ proposal.id }} · {{ proposal.get_status_display }}</span>
+                      </span>
+                      <span class="loading loading-spinner loading-sm htmx-indicator mt-1" aria-hidden="true"></span>
+                    </button>
+                  </li>
+                {% empty %}
+                  <li class="p-4 text-sm text-base-content/70">No persisted proposals.</li>
+                {% endfor %}
+              </ul>
+            </div>
+          </div>
+          <div id="proposal-registry-detail" class="fragment-transition" aria-busy="false">
+            {% if latest_proposal %}{% include "studio/partials/proposal_detail.html#proposal-detail" with proposal=latest_proposal instance="registry" %}{% endif %}
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <aside id="studio-navigation" class="drawer-side z-40">
+    <label for="studio-drawer" class="drawer-overlay"></label>
+    <div class="flex min-h-full w-72 flex-col bg-secondary text-secondary-content">
+      <div class="flex items-center gap-3 border-b border-secondary-content/10 p-5">
+        <div class="grid size-10 place-items-center rounded-box border border-secondary-content/20 bg-secondary-content/5 text-primary" aria-hidden="true">
+          <svg xmlns="http://www.w3.org/2000/svg" class="size-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M5 4v5m0 6v5m14-16v5m0 6v5M5 9h14M5 15h14M12 9v6"/></svg>
+        </div>
+        <div class="min-w-0 flex-1">
+          <div class="break-words font-semibold">Governed workbench</div>
+          <div class="text-xs text-secondary-content/70">Design · review · evidence</div>
+        </div>
+        <button type="button" class="btn btn-ghost btn-square ms-auto lg:hidden" aria-label="Close navigation" aria-controls="studio-navigation" @click="drawerOpen = false">
+          <svg xmlns="http://www.w3.org/2000/svg" class="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true" focusable="false"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18 18 6M6 6l12 12"/></svg>
+        </button>
+      </div>
+      <nav class="grow" aria-label="Primary">
+        <ul class="menu menu-lg w-full gap-1 p-3">
+          <li class="menu-title text-secondary-content opacity-100!">Explore</li>
+          <li><a href="{% url 'studio:dashboard' %}?section=overview" @click.prevent="showSection('overview')" :class="section === 'overview' && 'menu-active'" :aria-current="section === 'overview' ? 'page' : null">{% component "menu_icon" name="overview" / %}<span>Overview</span></a></li>
+          <li><a href="{% url 'studio:dashboard' %}?section=ontology" @click.prevent="showSection('ontology')" :class="section === 'ontology' && 'menu-active'" :aria-current="section === 'ontology' ? 'page' : null">{% component "menu_icon" name="ontology" / %}<span>Ontology map</span></a></li>
+          <li><a href="{% url 'studio:dashboard' %}?section=catalog" @click.prevent="showSection('catalog')" :class="section === 'catalog' && 'menu-active'" :aria-current="section === 'catalog' ? 'page' : null">{% component "menu_icon" name="catalog" / %}<span>Catalog</span></a></li>
+          <li><a href="{% url 'studio:dashboard' %}?section=connections" @click.prevent="showSection('connections')" :class="section === 'connections' && 'menu-active'" :aria-current="section === 'connections' ? 'page' : null">{% component "menu_icon" name="connections" / %}<span>Connector model</span></a></li>
+          <li class="menu-title mt-3 text-secondary-content opacity-100!">Work</li>
+          <li><a href="{% url 'studio:dashboard' %}?section=compose" @click.prevent="showSection('compose')" :class="section === 'compose' && 'menu-active'" :aria-current="section === 'compose' ? 'page' : null">{% component "menu_icon" name="workflow" / %}<span>Start workflow</span></a></li>
+          <li><a href="{% url 'studio:dashboard' %}?section=proposals" @click.prevent="showSection('proposals')" :class="section === 'proposals' && 'menu-active'" :aria-current="section === 'proposals' ? 'page' : null">{% component "menu_icon" name="proposals" / %}<span>Proposal registry</span></a></li>
+        </ul>
+      </nav>
+      <div class="m-4 rounded-box border border-secondary-content/10 bg-secondary-content/5 p-4 text-xs">
+        <div class="font-semibold">Model routes</div>
+        <div class="mt-3" data-provider-route="gemini" data-environment-key="{{ provider_status.gemini|yesno:'true,false' }}">
+          <div class="flex items-center gap-2"><span class="status status-sm {% if provider_status.gemini %}status-success{% else %}status-neutral{% endif %}" data-provider-route-indicator aria-hidden="true"></span><span>Gemini · AI Studio</span></div>
+          <div class="mt-1 ps-4 text-secondary-content/70" data-provider-route-status aria-live="polite">{% if provider_status.gemini %}Environment key available{% else %}No key configured{% endif %}</div>
+        </div>
+        <div class="mt-3" data-provider-route="anthropic" data-environment-key="{{ provider_status.anthropic|yesno:'true,false' }}">
+          <div class="flex items-center gap-2"><span class="status status-sm {% if provider_status.anthropic %}status-success{% else %}status-neutral{% endif %}" data-provider-route-indicator aria-hidden="true"></span><span>Anthropic</span></div>
+          <div class="mt-1 ps-4 text-secondary-content/70" data-provider-route-status aria-live="polite">{% if provider_status.anthropic %}Environment key available{% else %}No key configured{% endif %}</div>
+        </div>
+      </div>
+    </div>
+  </aside>
+</div>
+{% endblock %}

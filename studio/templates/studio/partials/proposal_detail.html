@@ -1,0 +1,160 @@
+{% load component_tags partials %}
+{% partialdef proposal-detail inline %}
+{% firstof instance "result" as instance_id %}
+<article
+  class="proposal-transition space-y-5"
+  id="proposal-{{ proposal.id }}-{{ instance_id }}"
+  tabindex="-1"
+  data-result-focus
+  data-announcement="Proposal {{ proposal.id }} loaded with status {{ proposal.get_status_display }}."
+  aria-labelledby="proposal-title-{{ proposal.id }}-{{ instance_id }}"
+  x-data="{
+    proposalStage: '{% if sandbox_agent.status == 'evaluation_passed' or sandbox_agent.status == 'evaluation_failed' %}evidence{% elif sandbox_agent or proposal.status == 'approved' %}sandbox{% elif business_approval or source_approval %}review{% else %}specification{% endif %}',
+    moveProposalStage(offset) {
+      const stages = ['specification', 'review', 'sandbox', 'evidence'];
+      const next = stages[(stages.indexOf(this.proposalStage) + offset + stages.length) % stages.length];
+      this.proposalStage = next;
+      this.$nextTick(() => this.$refs[`${next}Tab`]?.focus());
+    },
+    goToProposalStage(value) {
+      this.proposalStage = value;
+      this.$nextTick(() => this.$refs[`${value}Tab`]?.focus());
+    }
+  }"
+>
+  {% if operation_error %}
+    <div class="alert alert-error alert-soft" role="alert">
+      <span><span class="font-semibold">Sandbox step not completed.</span> {{ operation_error }}</span>
+    </div>
+  {% endif %}
+
+  <section class="card card-border bg-base-100">
+    <div class="card-body gap-4">
+      <div class="flex flex-col justify-between gap-3 sm:flex-row sm:items-start">
+        <div class="min-w-0">
+          <div class="eyebrow">Proposal #{{ proposal.id }}</div>
+          <h2 id="proposal-title-{{ proposal.id }}-{{ instance_id }}" class="mt-1 break-words text-2xl font-semibold tracking-tight">{{ proposal.title }}</h2>
+        </div>
+        <div class="flex shrink-0 flex-wrap gap-2">
+          {% component "status_badge" label=proposal.get_status_display state=proposal.status / %}
+          {% component "status_badge" label=proposal.get_risk_level_display|add:" risk" state=proposal.risk_level / %}
+        </div>
+      </div>
+      <p class="max-w-5xl text-sm leading-relaxed text-base-content/70">{{ proposal.summary }}</p>
+      <dl class="grid overflow-hidden rounded-box border border-base-300 text-sm sm:grid-cols-3" aria-label="Proposal summary">
+        <div class="border-b border-base-300 p-3 sm:border-e sm:border-b-0"><dt class="text-xs text-base-content/70">Requester</dt><dd class="mt-1 font-medium">{{ proposal.requester_role }}</dd></div>
+        <div class="border-b border-base-300 p-3 sm:border-e sm:border-b-0"><dt class="text-xs text-base-content/70">Model route</dt><dd class="mt-1 break-words font-medium">{{ proposal.model_provider }} · {{ proposal.model_name }}</dd></div>
+        <div class="p-3"><dt class="text-xs text-base-content/70">Reuse decision</dt><dd class="mt-1 font-medium">{{ proposal.existing_workflow.name|default:"New workflow proposed" }}</dd></div>
+      </dl>
+    </div>
+  </section>
+
+  <section class="card card-border bg-base-100" aria-label="Proposal workflow">
+    <div class="card-body gap-4 p-4 sm:p-5">
+      <div class="overflow-x-auto">
+        <div class="tabs tabs-border min-w-max" role="tablist" aria-label="Proposal workflow stages">
+          <button id="specification-tab-{{ proposal.id }}-{{ instance_id }}" x-ref="specificationTab" class="tab" :class="proposalStage === 'specification' && 'tab-active'" :aria-selected="proposalStage === 'specification'" :tabindex="proposalStage === 'specification' ? 0 : -1" aria-controls="specification-panel-{{ proposal.id }}-{{ instance_id }}" role="tab" type="button" @click="proposalStage = 'specification'" @keydown.left.prevent="moveProposalStage(-1)" @keydown.right.prevent="moveProposalStage(1)" @keydown.home.prevent="goToProposalStage('specification')" @keydown.end.prevent="goToProposalStage('evidence')">1 · Specification</button>
+          <button id="review-tab-{{ proposal.id }}-{{ instance_id }}" x-ref="reviewTab" class="tab" :class="proposalStage === 'review' && 'tab-active'" :aria-selected="proposalStage === 'review'" :tabindex="proposalStage === 'review' ? 0 : -1" aria-controls="review-panel-{{ proposal.id }}-{{ instance_id }}" role="tab" type="button" @click="proposalStage = 'review'" @keydown.left.prevent="moveProposalStage(-1)" @keydown.right.prevent="moveProposalStage(1)" @keydown.home.prevent="goToProposalStage('specification')" @keydown.end.prevent="goToProposalStage('evidence')">2 · Review</button>
+          <button id="sandbox-tab-{{ proposal.id }}-{{ instance_id }}" x-ref="sandboxTab" class="tab" :class="proposalStage === 'sandbox' && 'tab-active'" :aria-selected="proposalStage === 'sandbox'" :tabindex="proposalStage === 'sandbox' ? 0 : -1" aria-controls="sandbox-panel-{{ proposal.id }}-{{ instance_id }}" role="tab" type="button" @click="proposalStage = 'sandbox'" @keydown.left.prevent="moveProposalStage(-1)" @keydown.right.prevent="moveProposalStage(1)" @keydown.home.prevent="goToProposalStage('specification')" @keydown.end.prevent="goToProposalStage('evidence')">3 · Sandbox</button>
+          <button id="evidence-tab-{{ proposal.id }}-{{ instance_id }}" x-ref="evidenceTab" class="tab" :class="proposalStage === 'evidence' && 'tab-active'" :aria-selected="proposalStage === 'evidence'" :tabindex="proposalStage === 'evidence' ? 0 : -1" aria-controls="evidence-panel-{{ proposal.id }}-{{ instance_id }}" role="tab" type="button" @click="proposalStage = 'evidence'" @keydown.left.prevent="moveProposalStage(-1)" @keydown.right.prevent="moveProposalStage(1)" @keydown.home.prevent="goToProposalStage('specification')" @keydown.end.prevent="goToProposalStage('evidence')">4 · Evidence</button>
+        </div>
+      </div>
+
+      <div class="rounded-box bg-base-200 p-3 text-sm">
+        <div x-show="proposalStage === 'specification'" x-cloak><span class="font-semibold">Confirm the design.</span> Review the proposed outcome, controls, and catalog bindings.</div>
+        <div x-show="proposalStage === 'review'" x-cloak><span class="font-semibold">Record human authority.</span> Business and source owners make separate sandbox decisions.</div>
+        <div x-show="proposalStage === 'sandbox'" x-cloak><span class="font-semibold">Exercise the runtime boundary.</span> Register the manifest and run only the synthetic evaluation.</div>
+        <div x-show="proposalStage === 'evidence'" x-cloak><span class="font-semibold">Inspect proof of work.</span> Review findings, evaluation results, measured evidence, and retained events.</div>
+      </div>
+    </div>
+  </section>
+
+  <section
+    id="specification-panel-{{ proposal.id }}-{{ instance_id }}"
+    role="tabpanel"
+    tabindex="0"
+    aria-labelledby="specification-tab-{{ proposal.id }}-{{ instance_id }}"
+    x-show="proposalStage === 'specification'"
+    x-transition.opacity.duration.150ms
+    x-cloak
+  >
+    <div class="grid gap-5 lg:grid-cols-[0.8fr_1.2fr]">
+      <section class="card card-border bg-base-100">
+        <div class="card-body">
+          <div class="eyebrow">Proposed behavior</div>
+          <h3 class="card-title">What this agent is for</h3>
+          <dl class="mt-2 space-y-4 text-sm">
+            <div><dt class="text-xs text-base-content/70">Business outcome</dt><dd class="mt-1 leading-relaxed">{{ proposal.business_outcome }}</dd></div>
+            <div><dt class="text-xs text-base-content/70">Agent specification</dt><dd class="mt-1 font-medium">{{ proposal.agent_name }}</dd></div>
+            <div><dt class="text-xs text-base-content/70">Model participation</dt><dd class="mt-1">{% if proposal.model_used %}LLM interpreted intent; application code validated the result.{% else %}Deterministic reference path; no external model call.{% endif %}</dd></div>
+          </dl>
+        </div>
+      </section>
+
+      <section class="card card-border bg-base-100">
+        <div class="card-body">
+          <div class="eyebrow">Policy results</div>
+          <h3 class="card-title">{{ proposal.control_checks.count }} controls evaluated by code</h3>
+          <div class="mt-2 grid gap-2 sm:grid-cols-2">
+            {% for check in proposal.control_checks.all %}
+              <div class="flex items-start gap-3 rounded-box border border-base-300 p-3">
+                <span class="status mt-1.5 {% if check.outcome == 'pass' %}status-success{% elif check.outcome == 'warning' %}status-warning{% else %}status-error{% endif %}" aria-hidden="true"></span>
+                <div class="min-w-0"><div class="text-sm font-medium"><span class="sr-only">{{ check.get_outcome_display }}: </span>{{ check.name }}</div><p class="mt-1 text-xs leading-relaxed text-base-content/70">{{ check.detail }}</p></div>
+              </div>
+            {% endfor %}
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <details class="collapse collapse-arrow mt-5 border border-base-300 bg-base-100">
+      <summary class="collapse-title font-semibold">Catalog binding registry · {{ proposal.bindings.count }} objects</summary>
+      <div class="collapse-content">
+        <p class="mb-3 text-sm text-base-content/70">These are the exact governed objects resolved from the model or deterministic draft.</p>
+        <div class="overflow-x-auto rounded-box border border-base-300" tabindex="0" role="region" aria-label="Proposal catalog bindings">
+          <table class="table table-sm min-w-[46rem]">
+            <caption class="sr-only">Catalog objects and access modes bound to this proposal</caption>
+            <thead><tr><th scope="col">Object</th><th scope="col">Kind</th><th scope="col">Allowed action</th><th scope="col">Purpose</th></tr></thead>
+            <tbody>
+              {% for binding in proposal.bindings.all %}
+                <tr><td class="font-medium">{{ binding.node.name }}</td><td>{{ binding.get_binding_kind_display }}</td><td><span class="whitespace-nowrap text-sm font-medium">{{ binding.get_access_mode_display }}</span></td><td class="max-w-xl text-xs leading-relaxed text-base-content/70">{{ binding.purpose }}</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </details>
+  </section>
+
+  <section id="review-panel-{{ proposal.id }}-{{ instance_id }}" role="tabpanel" tabindex="0" aria-labelledby="review-tab-{{ proposal.id }}-{{ instance_id }}" x-show="proposalStage === 'review'" x-transition.opacity.duration.150ms x-cloak>
+    {% include "studio/partials/sandbox_slice.html" with slice_stage="review" %}
+  </section>
+
+  <section id="sandbox-panel-{{ proposal.id }}-{{ instance_id }}" role="tabpanel" tabindex="0" aria-labelledby="sandbox-tab-{{ proposal.id }}-{{ instance_id }}" x-show="proposalStage === 'sandbox'" x-transition.opacity.duration.150ms x-cloak>
+    {% include "studio/partials/sandbox_slice.html" with slice_stage="sandbox" %}
+  </section>
+
+  <section id="evidence-panel-{{ proposal.id }}-{{ instance_id }}" role="tabpanel" tabindex="0" aria-labelledby="evidence-tab-{{ proposal.id }}-{{ instance_id }}" x-show="proposalStage === 'evidence'" x-transition.opacity.duration.150ms x-cloak>
+    {% include "studio/partials/sandbox_slice.html" with slice_stage="evidence" %}
+    <details class="collapse collapse-arrow mt-5 border border-base-300 bg-base-100">
+      <summary class="collapse-title font-semibold">Retained proposal events · {{ proposal.proof_events.count }}</summary>
+      <div class="collapse-content">
+        <ul class="timeline timeline-vertical timeline-compact mt-2">
+          {% for event in proposal.proof_events.all %}
+            <li>
+              {% if not forloop.first %}<hr>{% endif %}
+              <div class="timeline-middle"><span class="status status-info" aria-hidden="true"></span></div>
+              <div class="timeline-end timeline-box mb-3 w-full">
+                <div class="flex flex-col justify-between gap-1 sm:flex-row"><span class="font-medium">{{ event.get_event_type_display }}</span><span class="text-xs text-base-content/70">{{ event.created_at|date:"M j, Y · H:i" }}</span></div>
+                <p class="mt-1 text-xs text-base-content/70">{{ event.summary }}</p>
+                <div class="mt-2 break-all font-mono text-xs text-base-content/70">{{ event.evidence_reference }}</div>
+              </div>
+              {% if not forloop.last %}<hr>{% endif %}
+            </li>
+          {% endfor %}
+        </ul>
+      </div>
+    </details>
+  </section>
+</article>
+{% endpartialdef proposal-detail %}

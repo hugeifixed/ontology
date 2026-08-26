@@ -1,0 +1,20 @@
+{% load django_htmx static %}
+<!doctype html>
+<html lang="en" data-theme="institutional">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="htmx-config" content='{"responseHandling":[{"code":"204","swap":false},{"code":"[23]..","swap":true},{"code":"422","swap":true,"error":false},{"code":"409","swap":true,"error":false},{"code":"502","swap":true,"error":false},{"code":"...","swap":false,"error":true}]}' >
+    <title>{% block title %}Governed Workflow Studio{% endblock %}</title>
+    <link rel="icon" href="{% static 'favicon/studio-mark.svg' %}" type="image/svg+xml">
+    <link rel="stylesheet" href="{% static 'studio/css/app.css' %}">
+    {% htmx_script %}
+    <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.15.3/dist/cdn.min.js" defer></script>
+    <script src="{% static 'studio/js/app.js' %}?v=20260826-2" defer></script>
+  </head>
+  <body class="min-h-screen bg-base-200" hx-headers='{"x-csrftoken": "{{ csrf_token }}"}'>
+    <a href="#main-content" class="skip-link btn btn-sm">Skip to content</a>
+    <div id="studio-announcer" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></div>
+    {% block body %}{% endblock %}
+  </body>
+</html>

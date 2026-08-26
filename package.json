@@ -1,0 +1,13 @@
+{
+  "name": "governed-ai-studio",
+  "private": true,
+  "scripts": {
+    "build:css": "npx @tailwindcss/cli -i studio/assets/css/input.css -o studio/static/studio/css/app.css --minify",
+    "watch:css": "npx @tailwindcss/cli -i studio/assets/css/input.css -o studio/static/studio/css/app.css --watch"
+  },
+  "devDependencies": {
+    "@tailwindcss/cli": "^4.1.0",
+    "daisyui": "^5.7.0",
+    "tailwindcss": "^4.1.0"
+  }
+}

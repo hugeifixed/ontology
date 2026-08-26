@@ -1,0 +1,10 @@
+{% extends "studio/base.html" %}
+
+{% block title %}{{ proposal.title }} · Governed Workflow Studio{% endblock %}
+
+{% block body %}
+  <main id="main-content" class="mx-auto max-w-6xl p-4 sm:p-6 lg:p-8">
+    <a class="btn mb-5" href="{% url 'studio:dashboard' %}?section=proposals">Back to proposal registry</a>
+    {% include "studio/partials/proposal_detail.html#proposal-detail" with instance="page" %}
+  </main>
+{% endblock %}

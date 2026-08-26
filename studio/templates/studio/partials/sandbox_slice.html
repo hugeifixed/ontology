@@ -1,0 +1,168 @@
+{% if slice_stage == "review" %}
+  <div class="space-y-5">
+    <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+      <div>
+        <div class="eyebrow">Human review</div>
+        <h3 class="mt-1 text-xl font-semibold">Approve the exact sandbox specification</h3>
+        <p class="mt-2 max-w-3xl text-sm leading-relaxed text-base-content/70">The versioned manifest fixes the proposed agent boundary. Business accountability and source access remain separate decisions.</p>
+      </div>
+      {% if proposal.status == 'approved' %}<span class="badge badge-success h-auto min-h-6 whitespace-normal py-1">Both approvals recorded</span>{% else %}<span class="badge badge-warning badge-soft h-auto min-h-6 whitespace-normal py-1">Review in progress</span>{% endif %}
+    </div>
+
+    <div class="grid gap-5 xl:grid-cols-[0.72fr_1.28fr]">
+      <article class="card card-border bg-base-100">
+        <div class="card-body">
+          <div class="flex flex-wrap items-start justify-between gap-3">
+            <div><div class="eyebrow">Agent specification</div><h4 class="card-title">Versioned manifest</h4></div>
+            {% if manifest %}<span class="badge badge-outline">v{{ manifest.version }}</span>{% endif %}
+          </div>
+          {% if manifest %}
+            <dl class="mt-2 space-y-3 text-sm">
+              <div><dt class="text-base-content/70">Schema</dt><dd class="mt-1 font-mono">{{ manifest.schema_version }}</dd></div>
+              <div><dt class="text-base-content/70">Prompt</dt><dd class="mt-1 break-all font-mono text-xs">{{ manifest.prompt_version }}</dd></div>
+              <div><dt class="text-base-content/70">Artifact hash</dt><dd class="mt-1 break-all font-mono text-xs">{{ manifest.artifact_hash }}</dd></div>
+            </dl>
+            <div class="card-actions mt-3 justify-end"><a class="btn btn-sm" href="{% url 'studio:download-manifest' proposal.id %}">Download JSON manifest</a></div>
+          {% else %}
+            <div class="alert alert-warning alert-soft"><span>No manifest exists for this legacy proposal. Create a new proposal to continue.</span></div>
+          {% endif %}
+        </div>
+      </article>
+
+      <article class="card card-border bg-base-100">
+        <div class="card-body">
+          <div class="eyebrow">Independent authority</div>
+          <h4 class="card-title">Two accountable decisions</h4>
+          <div class="mt-2 grid grid-cols-[repeat(auto-fit,minmax(min(100%,18rem),1fr))] gap-3">
+            <div class="min-w-0 rounded-box border border-base-300 bg-base-200 p-4">
+              <div class="flex flex-wrap items-start justify-between gap-2"><span class="font-semibold">Business owner</span>{% if business_approval %}<span class="badge badge-success badge-sm shrink-0">Approved</span>{% else %}<span class="badge badge-ghost badge-sm shrink-0">Pending</span>{% endif %}</div>
+              {% if business_approval %}
+                <p class="mt-2 text-sm">{{ business_approval.approver }}</p><p class="mt-1 text-xs leading-relaxed text-base-content/70">{{ business_approval.note|default:"Outcome and operating boundary accepted." }}</p>
+              {% elif manifest and proposal.status != 'blocked' %}
+                <form class="mt-3 min-w-0 space-y-3" hx-post="{% url 'studio:approve-proposal' proposal.id %}" hx-target="#proposal-{{ proposal.id }}-{{ instance_id }}" hx-swap="outerHTML swap:100ms settle:150ms" hx-disabled-elt="find button[type='submit']">
+                  {% csrf_token %}<input type="hidden" name="review_role" value="business_owner"><input type="hidden" name="note" value="Business outcome and read-only boundary accepted for synthetic evaluation.">
+                  <div class="fieldset min-w-0"><label class="fieldset-legend" for="business-approver-{{ proposal.id }}-{{ instance_id }}">Accountable reviewer</label><input id="business-approver-{{ proposal.id }}-{{ instance_id }}" name="approver" class="input min-w-0 w-full" value="Commercial servicing product owner" required></div>
+                  <button class="btn btn-sm h-auto min-h-10 w-full whitespace-normal py-2 leading-snug" type="submit" data-loading-label="Recording business approval">Approve business outcome</button>
+                </form>
+              {% endif %}
+            </div>
+
+            <div class="min-w-0 rounded-box border border-base-300 bg-base-200 p-4">
+              <div class="flex flex-wrap items-start justify-between gap-2"><span class="font-semibold">Source owner</span>{% if source_approval %}<span class="badge badge-success badge-sm shrink-0">Approved</span>{% else %}<span class="badge badge-ghost badge-sm shrink-0">Pending</span>{% endif %}</div>
+              {% if source_approval %}
+                <p class="mt-2 text-sm">{{ source_approval.approver }}</p><p class="mt-1 text-xs leading-relaxed text-base-content/70">{{ source_approval.note|default:"Synthetic sources and entitlements accepted." }}</p>
+              {% elif manifest and proposal.status != 'blocked' %}
+                <form class="mt-3 min-w-0 space-y-3" hx-post="{% url 'studio:approve-proposal' proposal.id %}" hx-target="#proposal-{{ proposal.id }}-{{ instance_id }}" hx-swap="outerHTML swap:100ms settle:150ms" hx-disabled-elt="find button[type='submit']">
+                  {% csrf_token %}<input type="hidden" name="review_role" value="source_owner"><input type="hidden" name="note" value="Synthetic document, profile, and policy access accepted for sandbox testing.">
+                  <div class="fieldset min-w-0"><label class="fieldset-legend" for="source-approver-{{ proposal.id }}-{{ instance_id }}">Accountable reviewer</label><input id="source-approver-{{ proposal.id }}-{{ instance_id }}" name="approver" class="input min-w-0 w-full" value="Commercial loan data owner" required></div>
+                  <button class="btn btn-sm h-auto min-h-10 w-full whitespace-normal py-2 leading-snug" type="submit" data-loading-label="Recording source approval">Approve synthetic source scope</button>
+                </form>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+      </article>
+    </div>
+  </div>
+{% elif slice_stage == "sandbox" %}
+  <div class="space-y-5">
+    <section class="card card-border bg-base-100" aria-labelledby="sandbox-slice-title-{{ proposal.id }}-{{ instance_id }}">
+      <div class="card-body gap-4 p-4 sm:p-5">
+        <div class="flex flex-col justify-between gap-3 sm:flex-row sm:items-start">
+          <div><div class="eyebrow">Runtime orchestration</div><h3 id="sandbox-slice-title-{{ proposal.id }}-{{ instance_id }}" class="card-title mt-1">One agent, synthetic sources, sandbox only</h3><p class="mt-2 max-w-3xl text-sm leading-relaxed text-base-content/70">Register the approved manifest, exercise governed tools, and stop at sandbox evaluation. No production deployment is created.</p></div>
+          {% if sandbox_agent.status == 'evaluation_passed' %}<span class="badge badge-success badge-sm shrink-0 whitespace-nowrap">Sandbox evaluation passed</span>{% elif sandbox_agent %}<span class="badge badge-info badge-sm shrink-0 whitespace-nowrap">{{ sandbox_agent.get_status_display }}</span>{% else %}<span class="badge badge-ghost badge-sm shrink-0 whitespace-nowrap">Not registered</span>{% endif %}
+        </div>
+        <ul class="steps steps-vertical w-full overflow-x-auto lg:steps-horizontal" aria-label="Sandbox lifecycle">
+          <li class="step step-success">Manifest</li>
+          <li class="step {% if proposal.status == 'approved' or sandbox_agent %}step-success{% elif business_approval or source_approval %}step-warning{% endif %}">Approvals</li>
+          <li class="step {% if sandbox_agent %}step-success{% endif %}">Registration</li>
+          <li class="step {% if sandbox_agent.status == 'evaluation_passed' or sandbox_agent.status == 'evaluation_failed' %}step-success{% endif %}">Evaluation</li>
+        </ul>
+      </div>
+    </section>
+
+    <article class="card card-border bg-base-100 shadow-sm" aria-labelledby="sandbox-registration-title-{{ proposal.id }}-{{ instance_id }}">
+      <div class="card-body gap-4 p-4 sm:p-5">
+        <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div class="max-w-4xl">
+            <div class="eyebrow">Sandbox registration</div>
+            <h4 id="sandbox-registration-title-{{ proposal.id }}-{{ instance_id }}" class="card-title mt-1">Mocked orchestration adapter</h4>
+            <p class="mt-2 text-sm leading-relaxed text-base-content/70">The adapter accepts the approved manifest and returns sandbox-only identifiers. It performs no network call.</p>
+          </div>
+          {% if sandbox_agent %}<span class="badge badge-info badge-soft badge-sm shrink-0 whitespace-nowrap">Registered</span>{% endif %}
+        </div>
+        {% if sandbox_agent %}
+          <dl class="grid gap-3 text-sm md:grid-cols-3"><div class="rounded-box border border-base-300 bg-base-200 p-4"><dt class="text-base-content/70">Agent identity</dt><dd class="mt-1 break-all font-mono text-xs">{{ sandbox_agent.external_id }}</dd></div><div class="rounded-box border border-base-300 bg-base-200 p-4"><dt class="text-base-content/70">Request</dt><dd class="mt-1 break-all font-mono text-xs">{{ sandbox_agent.orchestration_request_id }}</dd></div><div class="rounded-box border border-base-300 bg-base-200 p-4"><dt class="text-base-content/70">Environment</dt><dd class="mt-1 font-mono text-xs">{{ sandbox_agent.environment }}</dd></div></dl>
+        {% elif proposal.status != 'approved' %}
+          <p class="text-sm text-base-content/70">Registration remains locked until both approval roles are recorded.</p>
+        {% endif %}
+        {% if proposal.status == 'approved' and not sandbox_agent %}
+          <div class="card-actions justify-end"><form class="w-full sm:w-auto" hx-post="{% url 'studio:register-sandbox' proposal.id %}" hx-target="#proposal-{{ proposal.id }}-{{ instance_id }}" hx-swap="outerHTML swap:100ms settle:150ms" hx-disabled-elt="find button[type='submit']">{% csrf_token %}<button class="btn btn-secondary btn-sm w-full whitespace-nowrap px-4 sm:w-auto" type="submit" aria-label="Register sandbox agent" data-loading-label="Registering sandbox agent"><span class="loading loading-ring loading-sm htmx-indicator" aria-hidden="true"></span><span class="request-label" aria-hidden="true"><span class="request-idle">Register sandbox agent</span><span class="request-pending">Registering agent</span></span></button></form></div>
+        {% elif sandbox_agent and sandbox_agent.status == 'registered' %}
+          <div class="flex flex-col gap-4 border-t border-base-300 pt-5 lg:flex-row lg:items-center lg:justify-between">
+            <div class="min-w-0">
+              <div class="flex items-center gap-2 font-semibold"><span class="status status-info" aria-hidden="true"></span><span>Ready for synthetic evaluation</span></div>
+              <p class="mt-1 max-w-3xl text-sm leading-relaxed text-base-content/70">Runs four deterministic calls across three synthetic tools, including one entitlement denial, then scores four evaluations.</p>
+            </div>
+            <form class="shrink-0" hx-post="{% url 'studio:evaluate-sandbox' proposal.id %}" hx-target="#proposal-{{ proposal.id }}-{{ instance_id }}" hx-swap="outerHTML swap:100ms settle:150ms" hx-disabled-elt="find button[type='submit']">
+              {% csrf_token %}
+              <button class="btn btn-primary btn-sm w-full whitespace-nowrap px-4 sm:w-auto" type="submit" aria-label="Run sandbox evaluation" data-loading-label="Running sandbox evaluation">
+                <span class="loading loading-ring loading-sm htmx-indicator" aria-hidden="true"></span>
+                <span class="request-label" aria-hidden="true"><span class="request-idle">Run evaluation</span><span class="request-pending">Running evaluation</span></span>
+                <svg xmlns="http://www.w3.org/2000/svg" class="size-4 request-idle" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true" focusable="false"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m9 18 6-6-6-6"/></svg>
+              </button>
+            </form>
+          </div>
+        {% endif %}
+      </div>
+    </article>
+
+    {% if sandbox_agent.tool_invocations.exists %}
+      <div class="grid gap-3 sm:grid-cols-3">
+        <div class="rounded-box border border-base-300 bg-base-100 p-4"><div class="text-xs text-base-content/70">Tool calls</div><div class="mt-1 text-xl font-semibold">{{ sandbox_agent.tool_invocations.count }}</div></div>
+        <div class="rounded-box border border-base-300 bg-base-100 p-4"><div class="text-xs text-base-content/70">Entitlement denial</div><div class="mt-1 text-sm font-semibold">Demonstrated before source access</div></div>
+        <div class="rounded-box border border-base-300 bg-base-100 p-4"><div class="text-xs text-base-content/70">Runtime state</div><div class="mt-1 text-sm font-semibold">{{ sandbox_agent.get_status_display }}</div></div>
+      </div>
+      <div class="alert alert-warning alert-soft" role="status"><div><div class="font-semibold">Entitlement denial proved</div><div class="text-sm">The request for LOAN-SYN-999 was denied before connector access, and no source content was returned.</div></div></div>
+      <details class="collapse collapse-arrow border border-base-300 bg-base-100">
+        <summary class="collapse-title font-semibold">Inspect synthetic tool trace · {{ sandbox_agent.tool_invocations.count }} calls</summary>
+        <div class="collapse-content"><div class="overflow-x-auto rounded-box border border-base-300" tabindex="0" role="region" aria-label="Synthetic tool trace"><table class="table table-sm min-w-[58rem]"><caption class="sr-only">Synthetic tool invocations and runtime policy decisions</caption><thead><tr><th scope="col">#</th><th scope="col">Tool and resource</th><th scope="col">Identities</th><th scope="col">Policy</th><th scope="col">Latency</th><th scope="col">Evidence hashes</th></tr></thead><tbody>{% for invocation in sandbox_agent.tool_invocations.all %}<tr><th scope="row">{{ invocation.sequence }}</th><td><div class="font-medium">{{ invocation.tool.name }}</div><div class="mt-1 font-mono text-xs">{{ invocation.resource }}</div></td><td class="max-w-64"><div class="break-all text-xs">Human · {{ invocation.human_subject }}</div><div class="mt-1 break-all text-xs">Agent · {{ invocation.agent_subject }}</div></td><td class="max-w-72"><span class="badge badge-sm {% if invocation.decision == 'allow' %}badge-success{% else %}badge-error{% endif %}">{{ invocation.get_decision_display }}</span><p class="mt-2 text-xs text-base-content/70">{{ invocation.policy_reason }}</p></td><td>{{ invocation.latency_ms }} ms</td><td class="max-w-56 font-mono text-[0.68rem]"><div class="break-all">req {{ invocation.request_hash }}</div><div class="mt-1 break-all">res {{ invocation.response_hash }}</div></td></tr>{% endfor %}</tbody></table></div></div>
+      </details>
+    {% elif proposal.status == 'blocked' %}
+      <div class="alert alert-error alert-soft" role="alert"><span>This proposal contains a blocking design-time policy result and cannot enter the sandbox.</span></div>
+    {% endif %}
+  </div>
+{% elif slice_stage == "evidence" %}
+  <div class="space-y-5">
+    {% if sandbox_agent.status == 'evaluation_passed' %}
+      <div class="alert alert-success" role="status"><svg xmlns="http://www.w3.org/2000/svg" class="size-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true" focusable="false"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m4.5 12.75 6 6 9-13.5"/></svg><div><div class="font-semibold">Sandbox evaluation passed</div><div class="text-sm">All four evaluations passed against synthetic data. The demo stops here; no production approval, entitlement, deployment, or customer action exists.</div></div></div>
+    {% elif sandbox_agent.status == 'evaluation_failed' %}
+      <div class="alert alert-error" role="alert"><span>Sandbox evaluation failed. The instance remains blocked from any further lifecycle step.</span></div>
+    {% else %}
+      <div class="alert alert-info alert-soft"><span>Runtime evidence appears here after the synthetic sandbox evaluation completes.</span></div>
+    {% endif %}
+
+    {% if sandbox_agent.tool_invocations.exists %}
+      <section class="card card-border bg-base-100">
+        <div class="card-body">
+          <div class="eyebrow">Measured evidence</div><h3 class="card-title">Proof of work</h3>
+          <dl class="grid gap-3 text-sm sm:grid-cols-2 xl:grid-cols-4"><div class="rounded-box bg-base-200 p-3"><dt class="text-base-content/70">Model route</dt><dd class="mt-1 break-words font-medium">{{ proposal.model_provider }} · {{ proposal.model_name }}</dd></div><div class="rounded-box bg-base-200 p-3"><dt class="text-base-content/70">Prompt version</dt><dd class="mt-1 break-all font-mono text-xs">{{ proposal.prompt_version }}</dd></div><div class="rounded-box bg-base-200 p-3"><dt class="text-base-content/70">Composition</dt><dd class="mt-1 font-medium">{{ proposal.model_latency_ms }} ms</dd><dd class="text-xs text-base-content/70">{{ proposal.input_tokens }} in · {{ proposal.output_tokens }} out</dd></div><div class="rounded-box bg-base-200 p-3"><dt class="text-base-content/70">Estimated model cost</dt><dd class="mt-1 font-medium">{% if proposal.estimated_cost_usd != None %}${{ proposal.estimated_cost_usd }}{% else %}Not provided{% endif %}</dd></div></dl>
+        </div>
+      </section>
+
+      <section>
+        <div class="eyebrow">Evaluation pack</div><h3 class="mt-1 text-lg font-semibold">Required behavior tests</h3>
+        <div class="mt-3 grid gap-3 md:grid-cols-2">{% for result in sandbox_agent.evaluation_results.all %}<div class="flex items-start gap-3 rounded-box border border-base-300 bg-base-100 p-4"><span class="status mt-1.5 {% if result.outcome == 'pass' %}status-success{% else %}status-error{% endif %}" aria-hidden="true"></span><div class="min-w-0"><div class="font-semibold"><span class="sr-only">{{ result.get_outcome_display }}: </span>{{ result.get_test_case_display }}</div><p class="mt-1 text-sm leading-relaxed text-base-content/70">{{ result.observed }}</p><div class="mt-2 break-all font-mono text-xs">sha256:{{ result.artifact_hash }}</div></div></div>{% endfor %}</div>
+      </section>
+
+      <section>
+        <div class="eyebrow">Grounded result</div><h3 class="mt-1 text-lg font-semibold">Cited insurance findings</h3>
+        <div class="mt-3 grid gap-4 lg:grid-cols-2">{% for item in finding_evidence %}<article class="card card-border bg-base-100"><div class="card-body"><h4 class="card-title text-base">{{ item.finding.title }}</h4><p class="text-sm leading-relaxed">{{ item.finding.finding }}</p><div class="text-xs font-semibold uppercase tracking-wide text-base-content/70">Citations</div><ul class="space-y-1 font-mono text-xs">{% for citation in item.citations %}<li class="break-all">{{ citation }}</li>{% endfor %}</ul><div class="badge badge-outline badge-sm h-auto min-h-6 whitespace-normal py-1">Human review required</div></div></article>{% endfor %}</div>
+      </section>
+
+      <section class="card card-border bg-base-100">
+        <div class="card-body"><div class="eyebrow">Downloadable artifacts</div><h3 class="card-title">Exact JSON evidence</h3><div class="mt-2 grid gap-3 md:grid-cols-2">{% for artifact in evidence_artifacts %}<div class="rounded-box border border-base-300 bg-base-200 p-4"><div class="flex flex-wrap items-start justify-between gap-2"><div class="font-semibold">{{ artifact.get_artifact_type_display }}</div><span class="badge badge-outline badge-sm">v{{ artifact.version }}</span></div><div class="mt-2 break-all font-mono text-xs">sha256:{{ artifact.artifact_hash }}</div><a class="btn btn-sm mt-3" href="{% url 'studio:download-evidence' proposal.id artifact.artifact_type %}">Download JSON evidence</a></div>{% endfor %}</div></div>
+      </section>
+    {% endif %}
+  </div>
+{% endif %}

@@ -1,0 +1,134 @@
+{% load partials %}
+{% partialdef discovery-results inline %}
+{% if discovery_error %}
+  <div class="alert alert-error alert-soft items-start" role="alert" tabindex="-1" data-result-focus data-announcement="Catalog discovery needs more information.">
+    <svg xmlns="http://www.w3.org/2000/svg" class="size-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true" focusable="false"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v3.75m9-.75a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 3.75h.008v.008H12v-.008Z"/></svg>
+    <div><div class="font-semibold">Discovery not run</div><p class="text-sm">{{ discovery_error }}</p></div>
+  </div>
+{% elif discovery_result %}
+  <article class="fragment-transition space-y-5" tabindex="-1" data-result-focus data-announcement="Catalog discovery complete. {{ discovery_result.decision_label }}.">
+    <div class="card card-border bg-base-100">
+      <div class="card-body gap-5">
+        <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div class="min-w-0">
+            <div class="eyebrow">Discovery recommendation</div>
+            <h2 class="mt-2 text-2xl font-semibold tracking-tight">{{ discovery_result.decision_label }}</h2>
+            <p class="mt-2 max-w-3xl text-sm leading-relaxed text-base-content/70">{{ discovery_result.recommendation }}</p>
+          </div>
+          {% if discovery_result.decision == 'reuse' %}
+            <span class="badge badge-success badge-soft h-auto min-h-6 max-w-full shrink-0 whitespace-normal py-1 text-start leading-tight">Catalog path found</span>
+          {% elif discovery_result.decision == 'access_mismatch' %}
+            <span class="badge badge-error badge-soft h-auto min-h-6 max-w-full shrink-0 whitespace-normal py-1 text-start leading-tight">Scope stopped</span>
+          {% else %}
+            <span class="badge badge-warning badge-soft h-auto min-h-6 max-w-full shrink-0 whitespace-normal py-1 text-start leading-tight">Owner input needed</span>
+          {% endif %}
+        </div>
+
+        <dl class="grid gap-3 sm:grid-cols-2 xl:grid-cols-4" aria-label="Discovery evidence summary">
+          <div class="rounded-box bg-base-200 p-4"><dt class="text-xs text-base-content/70">Inferred domain</dt><dd class="mt-1 break-words text-sm font-semibold">{{ discovery_result.inferred_domain_label }}</dd></div>
+          <div class="rounded-box bg-base-200 p-4"><dt class="text-xs text-base-content/70">Discovery scope</dt><dd class="mt-1 break-words text-sm font-semibold">{{ discovery_result.access_profile.label }}</dd></div>
+          <div class="rounded-box bg-base-200 p-4"><dt class="text-xs text-base-content/70">Eligible metadata</dt><dd class="mt-1 text-sm font-semibold">{{ discovery_result.eligible_count }} of {{ discovery_result.catalog_count }} objects</dd></div>
+          <div class="rounded-box bg-base-200 p-4"><dt class="text-xs text-base-content/70">Interpretation route</dt><dd class="mt-1 text-sm font-semibold">Explainable concept matcher</dd></div>
+        </dl>
+      </div>
+    </div>
+
+    {% if discovery_result.workflow %}
+      <section aria-labelledby="matched-path-title">
+        <div class="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <div class="eyebrow">Governed graph path</div>
+            <h3 id="matched-path-title" class="mt-2 text-xl font-semibold">What already exists</h3>
+          </div>
+          <p class="text-xs text-base-content/70">Scores rank metadata; graph links establish dependencies.</p>
+        </div>
+        <div class="mt-4 grid gap-4 lg:grid-cols-2 2xl:grid-cols-4">
+          <article class="card card-border bg-base-100">
+            <div class="card-body gap-3">
+              <div class="flex flex-wrap items-start justify-between gap-2"><span class="badge badge-outline badge-sm">Workflow</span><span class="text-xs font-semibold text-base-content/70">{{ discovery_result.workflow.score }} / 100</span></div>
+              <h4 class="text-lg font-semibold">{{ discovery_result.workflow.node.name }}</h4>
+              <p class="text-sm text-base-content/70">{{ discovery_result.workflow.reason }}</p>
+              <dl class="mt-auto space-y-1 border-t border-base-300 pt-3 text-xs"><div class="flex justify-between gap-3"><dt class="text-base-content/70">Owner</dt><dd class="text-end">{{ discovery_result.workflow.node.owner }}</dd></div><div class="flex justify-between gap-3"><dt class="text-base-content/70">State</dt><dd class="text-end">{{ discovery_result.workflow.node.get_approval_state_display }}</dd></div></dl>
+            </div>
+          </article>
+
+          <article class="card card-border bg-base-100">
+            <div class="card-body gap-3">
+              <span class="badge badge-outline badge-sm w-fit">Data products</span>
+              <h4 class="text-lg font-semibold">{{ discovery_result.products|length }} governed source{{ discovery_result.products|length|pluralize }}</h4>
+              <ul class="divide-y divide-base-300 text-sm">
+                {% for match in discovery_result.products %}
+                  <li class="py-2"><span class="block font-medium">{{ match.node.name }}</span><span class="block text-xs text-base-content/70">{{ match.node.owner }} · {{ match.node.get_classification_display }}</span></li>
+                {% empty %}
+                  <li class="py-2 text-base-content/70">No data-product relationship registered.</li>
+                {% endfor %}
+              </ul>
+            </div>
+          </article>
+
+          <article class="card card-border bg-base-100">
+            <div class="card-body gap-3">
+              <span class="badge badge-outline badge-sm w-fit">Agent instance</span>
+              {% if discovery_result.agent %}
+                <h4 class="text-lg font-semibold">{{ discovery_result.agent.node.name }}</h4>
+                <p class="text-sm text-base-content/70">{{ discovery_result.agent.node.description }}</p>
+                <p class="mt-auto border-t border-base-300 pt-3 text-xs text-base-content/70">Owner · {{ discovery_result.agent.node.owner }}</p>
+              {% else %}
+                <h4 class="text-lg font-semibold">No registered instance</h4>
+                <p class="text-sm text-base-content/70">Create and approve an instance contract before runtime registration.</p>
+              {% endif %}
+            </div>
+          </article>
+
+          <article class="card card-border bg-base-100">
+            <div class="card-body gap-3">
+              <span class="badge badge-outline badge-sm w-fit">Capabilities</span>
+              <ul class="divide-y divide-base-300 text-sm">
+                {% for match in discovery_result.capabilities %}
+                  <li class="py-2"><span class="block font-medium">{{ match.node.name }}</span><span class="block text-xs text-base-content/70">{{ match.node.owner }}</span></li>
+                {% empty %}
+                  <li class="py-2 text-base-content/70">No capability inheritance registered.</li>
+                {% endfor %}
+              </ul>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section class="card card-border bg-base-100" aria-labelledby="relationship-path-title">
+        <div class="card-body">
+          <div class="eyebrow">Why this matched</div>
+          <h3 id="relationship-path-title" class="card-title">Typed relationship trace</h3>
+          <ol class="mt-2 grid gap-2 md:grid-cols-2 xl:grid-cols-3">
+            {% for step in discovery_result.relationship_path %}
+              <li class="grid grid-cols-[2rem_minmax(0,1fr)] items-start gap-2 rounded-box bg-base-200 p-3 text-sm"><span class="grid size-7 place-items-center rounded-full bg-secondary text-xs font-bold text-secondary-content">{{ forloop.counter }}</span><span class="pt-1 leading-relaxed">{{ step }}</span></li>
+            {% endfor %}
+          </ol>
+        </div>
+      </section>
+    {% elif discovery_result.ranked_matches %}
+      <section class="card card-border bg-base-100">
+        <div class="card-body">
+          <h3 class="card-title">Related metadata, but no complete path</h3>
+          <ul class="mt-2 divide-y divide-base-300">
+            {% for match in discovery_result.ranked_matches %}<li class="grid gap-1 py-3 sm:grid-cols-[minmax(0,1fr)_auto]"><span><span class="block font-medium">{{ match.node.name }}</span><span class="block text-xs text-base-content/70">{{ match.reason }}</span></span><span class="text-xs font-semibold">{{ match.score }} / 100</span></li>{% endfor %}
+          </ul>
+        </div>
+      </section>
+    {% endif %}
+
+    <div class="alert {% if discovery_result.can_continue %}border-success{% elif discovery_result.decision == 'access_mismatch' %}border-error{% else %}border-warning{% endif %} items-start bg-base-100 text-base-content" role="status">
+      <svg xmlns="http://www.w3.org/2000/svg" class="size-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true" focusable="false"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg>
+      <div class="min-w-0"><div class="font-semibold">Execution boundary</div><p class="text-sm leading-relaxed">{{ discovery_result.boundary }}</p></div>
+    </div>
+
+    {% if discovery_result.can_continue %}
+      <div class="flex flex-col gap-3 rounded-box border border-base-300 bg-base-100 p-4 sm:flex-row sm:items-center sm:justify-between">
+        <div><div class="font-semibold">Continue with this intent</div><p class="text-sm text-base-content/70">Copy it into the governed commercial proposal below; no source data is added.</p></div>
+        <textarea class="hidden" data-discovered-intent aria-hidden="true">{{ discovery_result.intent }}</textarea>
+        <button class="btn btn-primary shrink-0" type="button" data-use-discovery-intent>Use this catalog path</button>
+      </div>
+    {% endif %}
+  </article>
+{% endif %}
+{% endpartialdef discovery-results %}

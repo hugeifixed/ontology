@@ -1,0 +1,313 @@
+@import "tailwindcss" source("../../templates");
+@source "../../components";
+@source "../../forms.py";
+@plugin "daisyui" {
+  themes: false;
+  logs: false;
+}
+@plugin "daisyui/theme" {
+  name: "institutional";
+  default: true;
+  prefersdark: false;
+  color-scheme: light;
+  /* Primitive palette: components consume only the semantic daisyUI roles below. */
+  --neutral-0: #ffffff;
+  --neutral-50: #f7fafc;
+  --neutral-100: #f3f6f9;
+  --neutral-300: #d9e0e8;
+  --neutral-900: #293b51;
+  --neutral-950: #17263b;
+  --navy-900: #183552;
+  --orange-500: #f58025;
+  --info-700: #0b7198;
+  --success-700: #207a4c;
+  --warning-800: #855400;
+  --danger-700: #b12a22;
+  /* Semantic roles */
+  --color-base-100: var(--neutral-0);
+  --color-base-200: var(--neutral-100);
+  --color-base-300: var(--neutral-300);
+  --color-base-content: var(--neutral-950);
+  --color-primary: var(--orange-500);
+  --color-primary-content: var(--neutral-950);
+  --color-secondary: var(--navy-900);
+  --color-secondary-content: var(--neutral-50);
+  --color-accent: var(--orange-500);
+  --color-accent-content: var(--neutral-950);
+  --color-neutral: var(--neutral-900);
+  --color-neutral-content: var(--neutral-50);
+  --color-info: var(--info-700);
+  --color-info-content: var(--neutral-50);
+  --color-success: var(--success-700);
+  --color-success-content: var(--neutral-50);
+  --color-warning: var(--warning-800);
+  --color-warning-content: var(--neutral-50);
+  --color-error: var(--danger-700);
+  --color-error-content: var(--neutral-50);
+  --radius-selector: 0.5rem;
+  --radius-field: 0.375rem;
+  --radius-box: 0.75rem;
+  --size-selector: 0.25rem;
+  --size-field: 0.25rem;
+  --border: 1px;
+  --depth: 1;
+  --noise: 0;
+}
+
+@utility studio-shell {
+  @apply mx-auto w-full max-w-[1520px] px-4 sm:px-6 lg:px-10;
+}
+
+@utility eyebrow {
+  @apply text-[0.68rem] font-bold uppercase tracking-[0.2em] text-base-content/70;
+}
+
+@utility display-heading {
+  @apply font-semibold leading-[0.96] tracking-[-0.035em];
+  font-family: "Avenir Next Condensed", "Arial Narrow", "Roboto Condensed", sans-serif;
+  font-stretch: condensed;
+}
+
+@utility section-heading {
+  @apply display-heading max-w-4xl text-4xl sm:text-5xl;
+}
+
+@utility utility-type {
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+}
+
+html {
+  --motion-feedback: 120ms;
+  --motion-settle: 150ms;
+  --ease-enter: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-exit: cubic-bezier(0.55, 0, 1, 0.45);
+  scroll-padding-top: 5rem;
+}
+
+body {
+  font-family: "Avenir Next", Avenir, "Segoe UI", sans-serif;
+}
+
+.drawer-side .menu a {
+  border-inline-start: 2px solid transparent;
+  border-radius: var(--radius-field);
+  color: var(--color-secondary-content);
+  transition:
+    background-color var(--motion-feedback) var(--ease-enter),
+    border-color var(--motion-feedback) var(--ease-enter),
+    color var(--motion-feedback) var(--ease-enter);
+}
+
+.drawer-side .menu a .menu-icon {
+  opacity: 0.72;
+  transition: opacity var(--motion-feedback) var(--ease-enter);
+}
+
+.drawer-side .menu a:hover,
+.drawer-side .menu a:focus-visible {
+  background: color-mix(in oklab, var(--color-secondary-content), transparent 92%);
+  color: var(--color-secondary-content);
+}
+
+.drawer-side .menu a:hover .menu-icon,
+.drawer-side .menu a:focus-visible .menu-icon,
+.drawer-side .menu a.menu-active .menu-icon {
+  opacity: 1;
+}
+
+.drawer-side .menu a.menu-active {
+  border-inline-start-color: var(--color-primary);
+  background: color-mix(in oklab, var(--color-secondary-content), transparent 88%);
+  color: var(--color-secondary-content);
+}
+
+.ontology-node {
+  transition:
+    border-color var(--motion-settle) var(--ease-enter),
+    box-shadow var(--motion-settle) var(--ease-enter);
+}
+
+.ontology-node:hover,
+.ontology-node[open] {
+  border-color: color-mix(in oklab, var(--color-primary), var(--color-base-300) 55%);
+  box-shadow: 0 0.35rem 1rem color-mix(in oklab, var(--color-secondary), transparent 90%);
+}
+
+.registry-trigger {
+  transition:
+    background-color var(--motion-feedback) var(--ease-enter),
+    opacity var(--motion-feedback) var(--ease-enter);
+}
+
+.registry-trigger.htmx-request {
+  cursor: progress;
+  opacity: 0.72;
+}
+
+.request-label {
+  display: inline-grid;
+}
+
+.request-label > span {
+  grid-area: 1 / 1;
+  transition: opacity var(--motion-feedback) var(--ease-enter);
+}
+
+.request-pending,
+.htmx-request .request-idle {
+  opacity: 0;
+}
+
+.htmx-request .request-pending {
+  opacity: 1;
+}
+
+.control-hero {
+  background-image:
+    linear-gradient(115deg, transparent 0 58%, color-mix(in oklab, var(--color-primary), transparent 92%) 58% 100%),
+    linear-gradient(color-mix(in oklab, var(--color-secondary-content), transparent 96%) 1px, transparent 1px),
+    linear-gradient(90deg, color-mix(in oklab, var(--color-secondary-content), transparent 96%) 1px, transparent 1px);
+  background-size: auto, 2rem 2rem, 2rem 2rem;
+}
+
+.control-route {
+  position: relative;
+}
+
+.control-route::before {
+  position: absolute;
+  inset-block: 0.85rem;
+  inset-inline-start: 0.44rem;
+  width: 2px;
+  content: "";
+  background: var(--color-primary);
+  transform-origin: top;
+  animation: route-draw 600ms ease-out both;
+}
+
+.control-route > li {
+  position: relative;
+  padding-inline-start: 2.25rem;
+}
+
+.control-route > li::before {
+  position: absolute;
+  inset-block-start: 0.72rem;
+  inset-inline-start: 0;
+  width: 0.95rem;
+  height: 0.95rem;
+  border: 3px solid var(--color-secondary);
+  border-radius: 999px;
+  content: "";
+  background: var(--color-primary);
+  box-shadow: 0 0 0 2px color-mix(in oklab, var(--color-primary), transparent 55%);
+}
+
+@keyframes route-draw {
+  from {
+    transform: scaleY(0);
+  }
+  to {
+    transform: scaleY(1);
+  }
+}
+
+.skip-link {
+  position: fixed;
+  inset-block-start: 1rem;
+  inset-inline-start: 1rem;
+  z-index: 50;
+}
+
+.skip-link:not(:focus) {
+  clip-path: inset(50%);
+  white-space: nowrap;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  border: 0;
+  overflow: hidden;
+}
+
+:focus-visible {
+  outline: 3px solid var(--color-secondary);
+  outline-offset: 3px;
+}
+
+.bg-secondary :focus-visible,
+.drawer-side :focus-visible {
+  outline-color: var(--color-primary);
+}
+
+[tabindex="-1"]:focus {
+  outline: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+[x-cloak] {
+  display: none !important;
+}
+
+.fragment-transition,
+.proposal-transition {
+  opacity: 1;
+  transform: translateY(0);
+  transition:
+    opacity var(--motion-settle) var(--ease-enter),
+    transform var(--motion-settle) var(--ease-enter);
+}
+
+.fragment-transition.htmx-swapping,
+.proposal-transition.htmx-swapping {
+  opacity: 0;
+  transform: translateY(-0.25rem);
+  transition-duration: 100ms;
+  transition-timing-function: var(--ease-exit);
+}
+
+.fragment-transition.htmx-settling,
+.proposal-transition.htmx-added {
+  opacity: 0;
+  transform: translateY(0.375rem);
+}
+
+.htmx-indicator {
+  display: inline-grid;
+  visibility: hidden;
+  opacity: 0;
+  transform: scale(0.85);
+  transition:
+    opacity var(--motion-feedback) var(--ease-enter),
+    transform var(--motion-feedback) var(--ease-enter),
+    visibility 0s linear var(--motion-feedback);
+}
+
+.htmx-request .htmx-indicator,
+.htmx-request.htmx-indicator {
+  visibility: visible;
+  opacity: 1;
+  transform: scale(1);
+  transition-delay: 0s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fragment-transition,
+  .proposal-transition,
+  .provider-key-panel,
+  .htmx-indicator {
+    transform: none !important;
+    transition-duration: 80ms !important;
+    transition-timing-function: linear !important;
+  }
+}

@@ -1,0 +1,14 @@
+Django>=5.2,<5.3
+anthropic>=0.75
+django-auditlog>=3.4.1,<4
+django-browser-reload>=1.21,<2
+django-components>=0.151.1,<1
+django-enum>=2.2
+django-htmx>=1.29,<2
+django-template-partials>=25.3,<26
+google-genai>=1.60
+httpx>=0.28,<1
+loguru>=0.7.3,<1
+pydantic>=2.12
+python-dotenv>=1.1,<2
+whitenoise[brotli]>=6.12,<7
