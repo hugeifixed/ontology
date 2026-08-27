@@ -352,6 +352,13 @@ class StudioJourneyTests(TestCase):
 
         self.assertContains(response, "proposalStage: 'test'")
         self.assertContains(response, "3 · Test")
+        self.assertContains(response, "tabs tabs-box")
+        self.assertContains(response, "ring-2 ring-inset ring-primary")
+        self.assertContains(response, "Currently viewing · Test")
+        self.assertContains(
+            response,
+            ":aria-current=\"proposalStage === 'test' ? 'step' : null\"",
+        )
 
     @patch("studio.services.build_llm_provider")
     def test_read_only_model_alias_is_canonicalized_for_a_tool(self, provider_factory) -> None:
