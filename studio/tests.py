@@ -57,7 +57,7 @@ class StudioJourneyTests(TestCase):
         self.assertContains(response, "Commercial loan insurance covenant review")
         self.assertContains(
             response,
-            "Move one business need from discovery to defensible evidence.",
+            "Take a business request through a controlled sandbox review.",
         )
         self.assertContains(response, "Midland loan documents")
 
