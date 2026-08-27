@@ -111,8 +111,8 @@ function storageKeyFor(provider) {
 }
 
 function updateProviderRouteStatus(provider) {
-  const route = document.querySelector(`[data-provider-route="${provider}"]`);
-  if (!route) return;
+  const routes = document.querySelectorAll(`[data-provider-route="${provider}"]`);
+  if (!routes.length) return;
 
   const form = document.querySelector("[data-api-key-form]");
   const controls = apiKeyControls(form);
@@ -122,34 +122,34 @@ function updateProviderRouteStatus(provider) {
   const hasRequestKey =
     controls.providerInput?.value === provider &&
     Boolean(controls.keyInput?.value.trim());
-  const hasEnvironmentKey = route.dataset.environmentKey === "true";
-  const status = route.querySelector("[data-provider-route-status]");
-  const indicator = route.querySelector("[data-provider-route-indicator]");
-
-  let label = "No key configured";
-  let indicatorClass = "status-neutral";
-  if (hasTabKey) {
-    label = "Tab key ready";
-    indicatorClass = "status-success";
-  } else if (hasRequestKey) {
-    label = "Request key entered";
-    indicatorClass = "status-info";
-  } else if (hasEnvironmentKey) {
-    label = "Environment key available";
-    indicatorClass = "status-success";
-  }
-
-  if (status) status.textContent = label;
-  if (indicator) {
-    indicator.classList.remove(
-      "status-neutral",
-      "status-info",
-      "status-success",
-      "status-warning",
-      "status-error",
-    );
-    indicator.classList.add(indicatorClass);
-  }
+  routes.forEach((route) => {
+    const hasEnvironmentKey = route.dataset.environmentKey === "true";
+    const status = route.querySelector("[data-provider-route-status]");
+    const indicator = route.querySelector("[data-provider-route-indicator]");
+    let label = "No key configured";
+    let indicatorClass = "status-neutral";
+    if (hasTabKey) {
+      label = "Tab key ready";
+      indicatorClass = "status-success";
+    } else if (hasRequestKey) {
+      label = "Request key entered";
+      indicatorClass = "status-info";
+    } else if (hasEnvironmentKey) {
+      label = "Environment key available";
+      indicatorClass = "status-success";
+    }
+    if (status) status.textContent = label;
+    if (indicator) {
+      indicator.classList.remove(
+        "status-neutral",
+        "status-info",
+        "status-success",
+        "status-warning",
+        "status-error",
+      );
+      indicator.classList.add(indicatorClass);
+    }
+  });
 }
 
 function updateProviderRouteStatuses() {
@@ -322,8 +322,7 @@ document.addEventListener("click", (event) => {
     const proposalIntent = document.getElementById("id_intent");
     if (source && proposalIntent) {
       proposalIntent.value = source.value;
-      proposalIntent.scrollIntoView({ behavior: "smooth", block: "center" });
-      window.setTimeout(() => proposalIntent.focus(), 180);
+      window.dispatchEvent(new CustomEvent("review-intent-selected"));
     }
   }
 });

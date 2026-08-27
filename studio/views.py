@@ -3,8 +3,9 @@
 import json
 
 from django.conf import settings
+from django.db.models import Q
 from django.http import HttpRequest, HttpResponse
-from django.shortcuts import get_object_or_404, render
+from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_GET, require_POST
 from django.views.decorators.vary import vary_on_headers
 from loguru import logger
@@ -12,11 +13,19 @@ from loguru import logger
 from studio.discovery import discover_catalog
 from studio.forms import ApprovalForm, DiscoveryForm, ProposalForm
 from studio.models import (
+    ApprovalState,
+    BusinessDomain,
+    Classification,
     EvidenceArtifact,
+    InsuranceFinding,
     NodeType,
     OntologyEdge,
     OntologyNode,
+    ProposalStatus,
+    ReviewRole,
+    RiskLevel,
     SandboxAgentInstance,
+    SandboxStatus,
     WorkflowProposal,
 )
 from studio.providers import ProviderConfigurationError
@@ -39,7 +48,14 @@ REFERENCE_INTENT = (
     "approved policy standards, and return cited findings for human review. Do not "
     "change any system of record or contact the customer."
 )
-SECTIONS = {"overview", "ontology", "catalog", "connections", "compose", "proposals"}
+SECTIONS = {"home", "start", "proposals", "knowledge", "connections", "search"}
+SECTION_ALIASES = {
+    "overview": "home",
+    "compose": "start",
+    "catalog": "knowledge",
+    "ontology": "knowledge",
+}
+PROPOSAL_STAGES = {"define", "approve", "test", "evidence"}
 PROPOSAL_PARTIAL = "studio/partials/proposal_detail.html#proposal-detail"
 PROPOSAL_ERROR_PARTIAL = "studio/partials/proposal_error.html#proposal-error"
 DISCOVERY_PARTIAL = "studio/partials/discovery_results.html#discovery-results"
@@ -48,14 +64,148 @@ DISCOVERY_PARTIAL = "studio/partials/discovery_results.html#discovery-results"
 @require_GET
 def dashboard(request: HttpRequest) -> HttpResponse:
     """Render the integrated catalog, ontology, and proposal workspace."""
-    proposals = WorkflowProposal.objects.select_related("existing_workflow")[:8]
-    requested_section = request.GET.get("section", "overview")
+    raw_section = request.GET.get("section", "home")
+    requested_section = SECTION_ALIASES.get(raw_section, raw_section)
+    initial_section = requested_section if requested_section in SECTIONS else "home"
+    knowledge_view = request.GET.get("view", "browse")
+    if raw_section == "ontology":
+        knowledge_view = "map"
+    elif raw_section == "catalog":
+        knowledge_view = "browse"
+    if knowledge_view not in {"browse", "map"}:
+        knowledge_view = "browse"
+    knowledge_focus = request.GET.get("focus", "").strip()
+
+    all_proposals = list(
+        WorkflowProposal.objects.select_related("existing_workflow").prefetch_related(
+            "approvals", "manifests__sandbox_instance"
+        )[:50]
+    )
+    proposal_cards = [_proposal_navigation(proposal) for proposal in all_proposals]
+
+    proposal_q = request.GET.get("proposal_q", "").strip()
+    proposal_status = request.GET.get("proposal_status", "").strip()
+    proposal_risk = request.GET.get("proposal_risk", "").strip()
+    proposal_actor = request.GET.get("proposal_actor", "").strip()
+    filtered_proposal_cards = proposal_cards
+    if proposal_q:
+        needle = proposal_q.casefold()
+        filtered_proposal_cards = [
+            item
+            for item in filtered_proposal_cards
+            if needle in item["proposal"].title.casefold()
+            or needle in item["proposal"].intent.casefold()
+            or needle in item["proposal"].requester_role.casefold()
+        ]
+    if proposal_status:
+        filtered_proposal_cards = [
+            item for item in filtered_proposal_cards if item["proposal"].status == proposal_status
+        ]
+    if proposal_risk:
+        filtered_proposal_cards = [
+            item for item in filtered_proposal_cards if item["proposal"].risk_level == proposal_risk
+        ]
+    actor_labels = {
+        "business": "Business owner",
+        "source": "Source owner",
+        "sandbox": "Sandbox operator",
+        "governance": "Governance reviewer",
+    }
+    if proposal_actor in actor_labels:
+        filtered_proposal_cards = [
+            item
+            for item in filtered_proposal_cards
+            if item["next_actor"] == actor_labels[proposal_actor]
+        ]
+
+    catalog_nodes = OntologyNode.objects.all()
+    catalog_q = request.GET.get("catalog_q", "").strip()
+    catalog_domain = request.GET.get("catalog_domain", "").strip()
+    catalog_type = request.GET.get("catalog_type", "").strip()
+    catalog_classification = request.GET.get("catalog_classification", "").strip()
+    catalog_approval = request.GET.get("catalog_approval", "").strip()
+    if catalog_q:
+        catalog_nodes = catalog_nodes.filter(
+            Q(name__icontains=catalog_q)
+            | Q(description__icontains=catalog_q)
+            | Q(owner__icontains=catalog_q)
+            | Q(search_terms__icontains=catalog_q)
+        )
+    if catalog_domain:
+        catalog_nodes = catalog_nodes.filter(business_domain=catalog_domain)
+    if catalog_type:
+        catalog_nodes = catalog_nodes.filter(node_type=catalog_type)
+    if catalog_classification:
+        catalog_nodes = catalog_nodes.filter(classification=catalog_classification)
+    if catalog_approval:
+        catalog_nodes = catalog_nodes.filter(approval_state=catalog_approval)
+
+    focused_node = None
+    focused_edges = OntologyEdge.objects.none()
+    if knowledge_focus:
+        focused_node = OntologyNode.objects.filter(slug=knowledge_focus).first()
+        if focused_node is not None:
+            focused_edges = OntologyEdge.objects.select_related("source", "target").filter(
+                Q(source=focused_node) | Q(target=focused_node)
+            )
+
+    search_q = request.GET.get("q", "").strip()
+    search_nodes = OntologyNode.objects.none()
+    search_proposals = WorkflowProposal.objects.none()
+    search_findings = InsuranceFinding.objects.none()
+    if search_q:
+        search_nodes = OntologyNode.objects.filter(
+            Q(name__icontains=search_q)
+            | Q(description__icontains=search_q)
+            | Q(owner__icontains=search_q)
+            | Q(search_terms__icontains=search_q)
+        )[:8]
+        search_proposals = WorkflowProposal.objects.filter(
+            Q(title__icontains=search_q)
+            | Q(intent__icontains=search_q)
+            | Q(summary__icontains=search_q)
+        )[:8]
+        search_findings = InsuranceFinding.objects.select_related(
+            "agent__manifest__proposal"
+        ).filter(Q(title__icontains=search_q) | Q(finding__icontains=search_q))[:8]
+
+    task_counts = {
+        "business": sum(item["next_actor"] == "Business owner" for item in proposal_cards),
+        "source": sum(item["next_actor"] == "Source owner" for item in proposal_cards),
+        "sandbox": sum(item["recommended_stage"] == "test" for item in proposal_cards),
+        "evidence": sum(item["recommended_stage"] == "evidence" for item in proposal_cards),
+    }
     context = {
-        "initial_section": requested_section if requested_section in SECTIONS else "overview",
+        "initial_section": initial_section,
+        "knowledge_view": knowledge_view,
+        "knowledge_focus": knowledge_focus,
+        "focused_node": focused_node,
+        "focused_edges": focused_edges,
         "discovery_form": DiscoveryForm(),
         "proposal_form": ProposalForm(initial={"intent": REFERENCE_INTENT}),
-        "proposals": proposals,
-        "latest_proposal": proposals[0] if proposals else None,
+        "proposal_cards": filtered_proposal_cards,
+        "recent_proposal_cards": proposal_cards[:4],
+        "task_counts": task_counts,
+        "proposal_q": proposal_q,
+        "proposal_status": proposal_status,
+        "proposal_risk": proposal_risk,
+        "proposal_actor": proposal_actor,
+        "proposal_status_choices": ProposalStatus.choices,
+        "catalog_nodes": catalog_nodes,
+        "catalog_q": catalog_q,
+        "catalog_domain": catalog_domain,
+        "catalog_type": catalog_type,
+        "catalog_classification": catalog_classification,
+        "catalog_approval": catalog_approval,
+        "business_domain_choices": BusinessDomain.choices,
+        "node_type_choices": NodeType.choices,
+        "classification_choices": Classification.choices,
+        "approval_state_choices": ApprovalState.choices,
+        "risk_level_choices": RiskLevel.choices,
+        "search_q": search_q,
+        "search_nodes": search_nodes,
+        "search_proposals": search_proposals,
+        "search_findings": search_findings,
         "nodes": OntologyNode.objects.all(),
         "edges": OntologyEdge.objects.select_related("source", "target"),
         "ontology_layers": ontology_layers(),
@@ -137,13 +287,13 @@ def compose_proposal(request: HttpRequest) -> HttpResponse:
             ),
             status=502,
         )
-    response = render(
-        request,
-        PROPOSAL_PARTIAL,
-        _proposal_context(proposal),
-    )
-    response["HX-Trigger"] = "proposalCreated"
-    return response
+    destination = f"{proposal.get_absolute_url()}?stage=define"
+    if request.htmx:
+        response = HttpResponse(status=204)
+        response["HX-Redirect"] = destination
+        response["HX-Trigger"] = "proposalCreated"
+        return response
+    return redirect(destination)
 
 
 def _compose_error_response(
@@ -176,7 +326,7 @@ def proposal_detail(request: HttpRequest, proposal_id: int) -> HttpResponse:
     return render(
         request,
         PROPOSAL_PARTIAL if request.htmx else "studio/proposal_page.html",
-        _proposal_context(proposal),
+        _proposal_context(proposal, requested_stage=request.GET.get("stage")),
     )
 
 
@@ -207,12 +357,10 @@ def approve_proposal(request: HttpRequest, proposal_id: int) -> HttpResponse:
             status=409,
         )
     proposal.refresh_from_db()
-    response = render(
-        request,
-        PROPOSAL_PARTIAL,
-        _proposal_context(proposal),
-    )
+    context = _proposal_context(proposal)
+    response = render(request, PROPOSAL_PARTIAL, context)
     response["HX-Trigger"] = "proposalApproved"
+    response["HX-Push-Url"] = _proposal_stage_url(proposal, context)
     return response
 
 
@@ -229,8 +377,10 @@ def register_sandbox(request: HttpRequest, proposal_id: int) -> HttpResponse:
             _proposal_context(proposal, operation_error=str(exc)),
             status=409,
         )
-    response = render(request, PROPOSAL_PARTIAL, _proposal_context(proposal))
+    context = _proposal_context(proposal)
+    response = render(request, PROPOSAL_PARTIAL, context)
     response["HX-Trigger"] = "sandboxRegistered"
+    response["HX-Push-Url"] = _proposal_stage_url(proposal, context)
     return response
 
 
@@ -259,8 +409,10 @@ def evaluate_sandbox(request: HttpRequest, proposal_id: int) -> HttpResponse:
             _proposal_context(proposal, operation_error=str(exc)),
             status=409,
         )
-    response = render(request, PROPOSAL_PARTIAL, _proposal_context(proposal))
+    context = _proposal_context(proposal)
+    response = render(request, PROPOSAL_PARTIAL, context)
     response["HX-Trigger"] = "sandboxEvaluated"
+    response["HX-Push-Url"] = _proposal_stage_url(proposal, context)
     return response
 
 
@@ -303,6 +455,7 @@ def _proposal_context(
     proposal: WorkflowProposal,
     *,
     operation_error: str = "",
+    requested_stage: str | None = None,
 ) -> dict[str, object]:
     """Build one complete hypermedia representation of the vertical slice."""
     approvals = list(proposal.approvals.all())
@@ -320,6 +473,15 @@ def _proposal_context(
             {"finding": finding, "citations": json.loads(finding.citations)}
             for finding in sandbox_agent.findings.all()
         ]
+    navigation = _proposal_navigation(
+        proposal,
+        approvals=approvals,
+        manifest=manifest,
+        sandbox_agent=sandbox_agent,
+    )
+    initial_stage = (
+        requested_stage if requested_stage in PROPOSAL_STAGES else navigation["recommended_stage"]
+    )
     return {
         "approval_form": ApprovalForm(),
         "business_approval": approvals_by_role.get("business_owner"),
@@ -330,6 +492,64 @@ def _proposal_context(
         "manifest": manifest,
         "operation_error": operation_error,
         "proposal": proposal,
+        "proposal_navigation": navigation,
+        "initial_proposal_stage": initial_stage,
         "sandbox_agent": sandbox_agent,
         "source_approval": approvals_by_role.get("source_owner"),
     }
+
+
+def _proposal_navigation(
+    proposal: WorkflowProposal,
+    *,
+    approvals: list | None = None,
+    manifest=None,
+    sandbox_agent: SandboxAgentInstance | None = None,
+) -> dict[str, object]:
+    """Return the plain-language current state and one recommended next action."""
+    if approvals is None:
+        approvals = list(proposal.approvals.all())
+    approval_roles = {approval.review_role.value for approval in approvals}
+    if manifest is None:
+        manifest = proposal.manifests.order_by("-created_at").first()
+    if sandbox_agent is None and manifest is not None:
+        try:
+            sandbox_agent = manifest.sandbox_instance
+        except SandboxAgentInstance.DoesNotExist:
+            sandbox_agent = None
+
+    if proposal.status == ProposalStatus.BLOCKED:
+        stage, action, actor = "define", "Resolve blocking controls", "Design owner"
+    elif manifest is None:
+        stage, action, actor = "define", "Complete the versioned definition", "Requester"
+    elif ReviewRole.BUSINESS_OWNER not in approval_roles:
+        stage, action, actor = "approve", "Approve the business outcome", "Business owner"
+    elif ReviewRole.SOURCE_OWNER not in approval_roles:
+        stage, action, actor = "approve", "Approve the source scope", "Source owner"
+    elif sandbox_agent is None:
+        stage, action, actor = "test", "Register the sandbox agent", "Sandbox operator"
+    elif sandbox_agent.status == SandboxStatus.REGISTERED:
+        stage, action, actor = "test", "Run the sandbox evaluation", "Sandbox operator"
+    else:
+        stage, action, actor = "evidence", "Review findings and evidence", "Governance reviewer"
+
+    return {
+        "proposal": proposal,
+        "recommended_stage": stage,
+        "stage_label": {
+            "define": "Define",
+            "approve": "Approve",
+            "test": "Test",
+            "evidence": "Evidence",
+        }[stage],
+        "next_action": action,
+        "next_actor": actor,
+        "url": f"{proposal.get_absolute_url()}?stage={stage}",
+    }
+
+
+def _proposal_stage_url(proposal: WorkflowProposal, context: dict[str, object]) -> str:
+    """Build the canonical URL for the proposal's recommended stage."""
+    return (
+        f"{proposal.get_absolute_url()}?stage={context['proposal_navigation']['recommended_stage']}"
+    )

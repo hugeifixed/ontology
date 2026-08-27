@@ -1,5 +1,27 @@
 # Architecture and vendor discussion guide
 
+## Information architecture boundary
+
+The product navigation follows the work a person is trying to complete rather than exposing the application’s internal layers as peers:
+
+```text
+Home
+  -> Start review: discover -> define -> draft
+  -> Proposals: find work -> see next actor -> open canonical proposal
+     -> Define -> Approve -> Test -> Evidence
+  -> Knowledge model: browse governed objects <-> trace relationships
+  -> System connections: understand model, source, control, and evidence boundaries
+  -> Search: grouped catalog, proposal, and evidence results
+```
+
+Proposal creation redirects to a canonical proposal workspace. Its `stage` query parameter is a shareable and refresh-safe representation of the current view; server mutations use `HX-Push-Url` to move the address to the newly recommended stage. Dashboard sections and knowledge views also live in query parameters, and legacy section names resolve to the new structure.
+
+The home and proposal views derive a single recommended next action from proposal, approval, manifest, and sandbox state. They also name the accountable actor. This is presentation guidance, not authorization: the service layer continues to enforce independent review roles and valid state transitions.
+
+Catalog facets are independent dimensions—domain, object type, classification, and approval state. Workspace search intentionally groups different entity types rather than presenting an undifferentiated result list. The knowledge model cross-links catalog records to relationship traces so users can move from “what is this?” to “what depends on it?” without changing mental models.
+
+The structure is a testable hypothesis. Before broadening the prototype, validate it with representative business owners, source owners, governance reviewers, and architects using task-based tree tests. Record completion, wrong turns, and terminology confusion for tasks such as locating an approval queue, tracing a source dependency, and reopening completed evidence.
+
 ## Discovery before orchestration
 
 The application now begins with general discovery across three catalog domains: treasury management, retail banking, and commercial loan servicing. The request does not go directly to a vector store or agent. The boundary is:

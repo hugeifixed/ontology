@@ -1,0 +1,57 @@
+{% load component_tags %}
+<section data-section="home" x-show="section === 'home'" x-transition.opacity.duration.150ms x-cloak>
+  <div class="control-hero overflow-hidden rounded-box bg-secondary text-secondary-content shadow-lg">
+    <div class="grid lg:grid-cols-[1.15fr_0.85fr]">
+      <div class="p-7 sm:p-10 xl:p-12">
+        <div class="utility-type text-xs font-semibold uppercase tracking-[0.16em] text-secondary-content/80">Governed review workspace</div>
+        <h1 class="display-heading mt-5 max-w-4xl text-4xl sm:text-5xl" tabindex="-1">Take a business request through a controlled sandbox review.</h1>
+        <p class="mt-5 max-w-2xl leading-relaxed text-secondary-content/80">Find an approved workflow that fits, set its limits, and get separate approval from the business and source owners. Run it with synthetic data, then review the tool calls, policy decisions, and citations.</p>
+        <div class="mt-7 flex flex-wrap gap-3">
+          <button class="btn btn-primary" type="button" @click="showSection('start')">Start a review<svg xmlns="http://www.w3.org/2000/svg" class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m9 18 6-6-6-6"/></svg></button>
+          <button class="btn border-secondary-content/20 bg-transparent text-secondary-content hover:bg-secondary-content/10" type="button" @click="showSection('proposals')">View proposals</button>
+        </div>
+      </div>
+      <div class="border-t border-secondary-content/15 bg-secondary-content/5 p-7 lg:border-t-0 lg:border-s sm:p-9">
+        <div class="utility-type text-xs uppercase tracking-[0.16em] text-secondary-content/70">Reference path</div>
+        <ol class="mt-5 space-y-3" aria-label="Governed review stages">
+          <li class="flex items-center gap-3"><span class="grid size-7 shrink-0 place-items-center rounded-full bg-primary font-bold text-primary-content">1</span><span><strong>Discover</strong><span class="block text-xs text-secondary-content/70">Find what already exists</span></span></li>
+          <li class="flex items-center gap-3"><span class="grid size-7 shrink-0 place-items-center rounded-full bg-secondary-content/10 font-bold">2</span><span><strong>Define</strong><span class="block text-xs text-secondary-content/70">Fix the intended behavior and controls</span></span></li>
+          <li class="flex items-center gap-3"><span class="grid size-7 shrink-0 place-items-center rounded-full bg-secondary-content/10 font-bold">3</span><span><strong>Approve</strong><span class="block text-xs text-secondary-content/70">Record two accountable decisions</span></span></li>
+          <li class="flex items-center gap-3"><span class="grid size-7 shrink-0 place-items-center rounded-full bg-secondary-content/10 font-bold">4</span><span><strong>Test</strong><span class="block text-xs text-secondary-content/70">Exercise the synthetic sandbox</span></span></li>
+          <li class="flex items-center gap-3"><span class="grid size-7 shrink-0 place-items-center rounded-full bg-secondary-content/10 font-bold">5</span><span><strong>Evidence</strong><span class="block text-xs text-secondary-content/70">Review findings, decisions, and artifacts</span></span></li>
+        </ol>
+      </div>
+    </div>
+  </div>
+
+  <div class="mt-8 grid gap-6 xl:grid-cols-[1.25fr_0.75fr]">
+    <section aria-labelledby="resume-title">
+      <div class="flex items-end justify-between gap-4">
+        <div><div class="eyebrow">Resume work</div><h2 id="resume-title" class="mt-2 text-2xl font-semibold">Recent proposals</h2></div>
+        <button class="btn btn-ghost btn-sm" type="button" @click="showSection('proposals')">View all</button>
+      </div>
+      <div class="mt-4 space-y-3">
+        {% for item in recent_proposal_cards %}
+          <a class="card card-border bg-base-100 transition hover:border-primary/50" href="{{ item.url }}">
+            <div class="card-body gap-3 p-4 sm:p-5">
+              <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                <div class="min-w-0"><div class="text-xs text-base-content/60">Proposal #{{ item.proposal.id }} · {{ item.stage_label }}</div><h3 class="mt-1 break-words font-semibold">{{ item.proposal.title }}</h3></div>
+                {% component "status_badge" label=item.proposal.get_status_display state=item.proposal.status / %}
+              </div>
+              <div class="grid gap-2 rounded-box bg-base-200 p-3 text-sm sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center"><div><span class="font-semibold">Next:</span> {{ item.next_action }}</div><div class="text-xs text-base-content/70">{{ item.next_actor }}</div></div>
+            </div>
+          </a>
+        {% empty %}
+          <div class="card card-dash bg-base-100"><div class="card-body items-start"><h3 class="card-title">No proposals yet</h3><p class="text-sm text-base-content/70">Start with the preloaded insurance-review example.</p><button class="btn btn-sm" type="button" @click="showSection('start')">Start review</button></div></div>
+        {% endfor %}
+      </div>
+    </section>
+
+    <aside class="space-y-6" aria-label="Task and architecture shortcuts">
+      <section class="card card-border bg-base-100">
+        <div class="card-body"><div class="eyebrow">Task lenses</div><h2 class="card-title">Work awaiting attention</h2><dl class="mt-2 grid grid-cols-2 gap-3"><div class="rounded-box bg-base-200 p-3"><dt class="text-xs text-base-content/70">Business approval</dt><dd class="mt-1 text-2xl font-semibold">{{ task_counts.business }}</dd></div><div class="rounded-box bg-base-200 p-3"><dt class="text-xs text-base-content/70">Source approval</dt><dd class="mt-1 text-2xl font-semibold">{{ task_counts.source }}</dd></div><div class="rounded-box bg-base-200 p-3"><dt class="text-xs text-base-content/70">Sandbox work</dt><dd class="mt-1 text-2xl font-semibold">{{ task_counts.sandbox }}</dd></div><div class="rounded-box bg-base-200 p-3"><dt class="text-xs text-base-content/70">Evidence ready</dt><dd class="mt-1 text-2xl font-semibold">{{ task_counts.evidence }}</dd></div></dl><div class="card-actions mt-2"><button class="btn btn-sm" type="button" @click="showSection('proposals')">Open task list</button></div></div>
+      </section>
+      <section class="card card-border bg-base-100"><div class="card-body"><div class="eyebrow">Explore the platform</div><h2 class="card-title">Understand the boundaries</h2><div class="mt-2 grid gap-2"><button type="button" class="btn justify-start" @click="showKnowledge('browse')">Browse the knowledge model</button><button type="button" class="btn justify-start" @click="showSection('connections')">Inspect system connections</button></div></div></section>
+    </aside>
+  </div>
+</section>
