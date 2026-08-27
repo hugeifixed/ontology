@@ -1,0 +1,41 @@
+{% load component_tags %}
+<section data-section="proposals" x-show="section === 'proposals'" x-transition.opacity.duration.150ms x-cloak>
+  <div class="eyebrow">Work queue</div>
+  <h1 class="section-heading mt-3" tabindex="-1">Proposals</h1>
+  <p class="mt-3 max-w-3xl text-base-content/70">Find a proposal by status, risk, or accountable next actor. Each result opens at one canonical URL and the stage requiring attention.</p>
+
+  <div class="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4" aria-label="Task lenses">
+    <a class="card card-border bg-base-100" href="{% url 'studio:dashboard' %}?section=proposals&proposal_actor=business"><div class="card-body gap-1 p-4"><div class="text-xs text-base-content/70">Business owner</div><div class="text-2xl font-semibold">{{ task_counts.business }}</div><div class="text-xs">outcome approval{{ task_counts.business|pluralize }}</div></div></a>
+    <a class="card card-border bg-base-100" href="{% url 'studio:dashboard' %}?section=proposals&proposal_actor=source"><div class="card-body gap-1 p-4"><div class="text-xs text-base-content/70">Source owner</div><div class="text-2xl font-semibold">{{ task_counts.source }}</div><div class="text-xs">scope approval{{ task_counts.source|pluralize }}</div></div></a>
+    <a class="card card-border bg-base-100" href="{% url 'studio:dashboard' %}?section=proposals&proposal_actor=sandbox"><div class="card-body gap-1 p-4"><div class="text-xs text-base-content/70">Sandbox operator</div><div class="text-2xl font-semibold">{{ task_counts.sandbox }}</div><div class="text-xs">test task{{ task_counts.sandbox|pluralize }}</div></div></a>
+    <a class="card card-border bg-base-100" href="{% url 'studio:dashboard' %}?section=proposals&proposal_actor=governance"><div class="card-body gap-1 p-4"><div class="text-xs text-base-content/70">Governance reviewer</div><div class="text-2xl font-semibold">{{ task_counts.evidence }}</div><div class="text-xs">evidence review{{ task_counts.evidence|pluralize }}</div></div></a>
+  </div>
+
+  <form class="card card-border mt-6 bg-base-100" method="get" action="{% url 'studio:dashboard' %}">
+    <input type="hidden" name="section" value="proposals">
+    <div class="card-body grid gap-3 p-4 sm:grid-cols-2 xl:grid-cols-[minmax(16rem,1fr)_repeat(3,minmax(10rem,0.55fr))_auto] xl:items-end">
+      <div class="fieldset min-w-0"><label class="fieldset-legend" for="proposal-q">Search proposals</label><input id="proposal-q" class="input w-full" type="search" name="proposal_q" value="{{ proposal_q }}" placeholder="Title, intent, or requester"></div>
+      <div class="fieldset min-w-0"><label class="fieldset-legend" for="proposal-status">Status</label><select id="proposal-status" class="select w-full" name="proposal_status"><option value="">All statuses</option>{% for value, label in proposal_status_choices %}<option value="{{ value }}" {% if proposal_status == value %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></div>
+      <div class="fieldset min-w-0"><label class="fieldset-legend" for="proposal-risk">Risk</label><select id="proposal-risk" class="select w-full" name="proposal_risk"><option value="">All risk levels</option>{% for value, label in risk_level_choices %}<option value="{{ value }}" {% if proposal_risk == value %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></div>
+      <div class="fieldset min-w-0"><label class="fieldset-legend" for="proposal-actor">Next actor</label><select id="proposal-actor" class="select w-full" name="proposal_actor"><option value="">Anyone</option><option value="business" {% if proposal_actor == 'business' %}selected{% endif %}>Business owner</option><option value="source" {% if proposal_actor == 'source' %}selected{% endif %}>Source owner</option><option value="sandbox" {% if proposal_actor == 'sandbox' %}selected{% endif %}>Sandbox operator</option><option value="governance" {% if proposal_actor == 'governance' %}selected{% endif %}>Governance reviewer</option></select></div>
+      <div class="flex gap-2"><button class="btn btn-primary grow xl:grow-0" type="submit">Apply</button><a class="btn btn-ghost" href="{% url 'studio:dashboard' %}?section=proposals">Clear</a></div>
+    </div>
+  </form>
+
+  <div class="mt-5 flex items-center justify-between gap-3"><h2 class="text-lg font-semibold">{{ proposal_cards|length }} result{{ proposal_cards|length|pluralize }}</h2><a class="btn btn-sm" href="{% url 'studio:dashboard' %}?section=start">Start new review</a></div>
+  <div class="mt-3 space-y-3">
+    {% for item in proposal_cards %}
+      <article class="card card-border bg-base-100">
+        <div class="card-body gap-4 p-4 sm:p-5">
+          <div class="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(15rem,0.55fr)_auto] lg:items-center">
+            <div class="min-w-0"><div class="flex flex-wrap items-center gap-2"><span class="text-xs text-base-content/60">#{{ item.proposal.id }}</span>{% component "status_badge" label=item.proposal.get_status_display state=item.proposal.status / %}{% component "status_badge" label=item.proposal.get_risk_level_display|add:" risk" state=item.proposal.risk_level / %}</div><h3 class="mt-2 break-words text-lg font-semibold">{{ item.proposal.title }}</h3><p class="mt-1 line-clamp-2 text-sm text-base-content/70">{{ item.proposal.summary }}</p></div>
+            <dl class="rounded-box bg-base-200 p-3 text-sm"><div><dt class="text-xs text-base-content/65">Next action</dt><dd class="mt-1 font-semibold">{{ item.next_action }}</dd></div><div class="mt-2"><dt class="text-xs text-base-content/65">Responsible role</dt><dd class="mt-1">{{ item.next_actor }}</dd></div></dl>
+            <a class="btn btn-primary whitespace-nowrap" href="{{ item.url }}">Open {{ item.stage_label|lower }}</a>
+          </div>
+        </div>
+      </article>
+    {% empty %}
+      <div class="card card-dash bg-base-100"><div class="card-body items-center text-center"><h2 class="card-title">No proposals match</h2><p class="text-sm text-base-content/70">Clear one or more filters, or start a new governed review.</p><div class="card-actions"><a class="btn" href="{% url 'studio:dashboard' %}?section=proposals">Clear filters</a><a class="btn btn-primary" href="{% url 'studio:dashboard' %}?section=start">Start review</a></div></div></div>
+    {% endfor %}
+  </div>
+</section>

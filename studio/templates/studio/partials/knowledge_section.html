@@ -1,0 +1,49 @@
+<section data-section="knowledge" x-show="section === 'knowledge'" x-transition.opacity.duration.150ms x-cloak>
+  <div class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+    <div><div class="eyebrow">Shared knowledge model</div><h1 class="section-heading mt-3" tabindex="-1">Understand what exists and how it connects.</h1><p class="mt-3 max-w-3xl text-base-content/70">Browse governed objects as catalog records, then switch to the relationship map to trace their approved dependencies.</p></div>
+    <div class="tabs tabs-box shrink-0" role="tablist" aria-label="Knowledge model views"><a role="tab" class="tab" :class="knowledgeView === 'browse' && 'tab-active'" href="{% url 'studio:dashboard' %}?section=knowledge&view=browse" @click.prevent="showKnowledge('browse')">Browse catalog</a><a role="tab" class="tab" :class="knowledgeView === 'map' && 'tab-active'" href="{% url 'studio:dashboard' %}?section=knowledge&view=map" @click.prevent="showKnowledge('map')">Relationship map</a></div>
+  </div>
+
+  <div x-show="knowledgeView === 'browse'" x-transition.opacity.duration.150ms>
+    <form class="card card-border mt-6 bg-base-100" method="get" action="{% url 'studio:dashboard' %}">
+      <input type="hidden" name="section" value="knowledge"><input type="hidden" name="view" value="browse">
+      <div class="card-body gap-4 p-4 sm:p-5">
+        <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+          <div class="fieldset min-w-0 sm:col-span-2 xl:col-span-1"><label class="fieldset-legend" for="catalog-q">Search catalog</label><input id="catalog-q" class="input w-full" type="search" name="catalog_q" value="{{ catalog_q }}" placeholder="Name, owner, or term"></div>
+          <div class="fieldset min-w-0"><label class="fieldset-legend" for="catalog-domain">Domain</label><select id="catalog-domain" class="select w-full" name="catalog_domain"><option value="">All domains</option>{% for value, label in business_domain_choices %}<option value="{{ value }}" {% if catalog_domain == value %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></div>
+          <div class="fieldset min-w-0"><label class="fieldset-legend" for="catalog-type">Object type</label><select id="catalog-type" class="select w-full" name="catalog_type"><option value="">All types</option>{% for value, label in node_type_choices %}<option value="{{ value }}" {% if catalog_type == value %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></div>
+          <div class="fieldset min-w-0"><label class="fieldset-legend" for="catalog-classification">Classification</label><select id="catalog-classification" class="select w-full" name="catalog_classification"><option value="">All classifications</option>{% for value, label in classification_choices %}<option value="{{ value }}" {% if catalog_classification == value %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></div>
+          <div class="fieldset min-w-0"><label class="fieldset-legend" for="catalog-approval">Approval</label><select id="catalog-approval" class="select w-full" name="catalog_approval"><option value="">All states</option>{% for value, label in approval_state_choices %}<option value="{{ value }}" {% if catalog_approval == value %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></div>
+        </div>
+        <div class="card-actions justify-between"><span class="text-sm text-base-content/70">{{ catalog_nodes|length }} object{{ catalog_nodes|length|pluralize }}</span><div class="flex gap-2"><a class="btn btn-ghost btn-sm" href="{% url 'studio:dashboard' %}?section=knowledge&view=browse">Clear</a><button class="btn btn-primary btn-sm" type="submit">Apply filters</button></div></div>
+      </div>
+    </form>
+
+    <div class="mt-5 grid gap-4 lg:grid-cols-2 2xl:grid-cols-3">
+      {% for node in catalog_nodes %}
+        <article class="card card-border bg-base-100">
+          <div class="card-body gap-3 p-4 sm:p-5">
+            <div class="flex flex-wrap items-start justify-between gap-2"><span class="badge badge-outline badge-sm">{{ node.get_node_type_display }}</span><span class="badge badge-sm {% if node.classification == 'public' %}badge-success{% elif node.classification == 'internal' %}badge-info{% elif node.classification == 'confidential' %}badge-warning{% else %}badge-error{% endif %}">{{ node.get_classification_display }}</span></div>
+            <h2 class="card-title text-lg">{{ node.name }}</h2><p class="line-clamp-3 text-sm leading-relaxed text-base-content/70">{{ node.description }}</p>
+            <dl class="mt-auto grid grid-cols-2 gap-2 border-t border-base-300 pt-3 text-xs"><div><dt class="text-base-content/60">Domain</dt><dd class="mt-1 font-medium">{{ node.get_business_domain_display }}</dd></div><div><dt class="text-base-content/60">Approval</dt><dd class="mt-1 font-medium">{{ node.get_approval_state_display }}</dd></div><div class="col-span-2"><dt class="text-base-content/60">Owner</dt><dd class="mt-1 font-medium">{{ node.owner }}</dd></div></dl>
+            <div class="card-actions mt-1"><a class="btn btn-sm" href="{% url 'studio:dashboard' %}?section=knowledge&view=map&focus={{ node.slug }}">View relationships</a></div>
+          </div>
+        </article>
+      {% empty %}
+        <div class="card card-dash bg-base-100 lg:col-span-2 2xl:col-span-3"><div class="card-body items-center text-center"><h2 class="card-title">No catalog objects match</h2><p class="text-sm text-base-content/70">Try fewer filters or a broader search term.</p><a class="btn" href="{% url 'studio:dashboard' %}?section=knowledge&view=browse">Clear filters</a></div></div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div x-show="knowledgeView === 'map'" x-transition.opacity.duration.150ms x-cloak>
+    {% if focused_node %}
+      <div class="mt-6 card card-border bg-base-100"><div class="card-body"><div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between"><div><div class="eyebrow">Focused relationship trace</div><h2 class="card-title mt-1">{{ focused_node.name }}</h2><p class="mt-2 max-w-3xl text-sm text-base-content/70">{{ focused_node.description }}</p></div><a class="btn btn-sm" href="{% url 'studio:dashboard' %}?section=knowledge&view=map">Show full map</a></div><div class="mt-3 grid gap-3 md:grid-cols-2">{% for edge in focused_edges %}<div class="rounded-box border border-base-300 bg-base-200 p-4"><div class="text-xs font-semibold uppercase tracking-wide text-base-content/60">{{ edge.get_relation_display }}</div><div class="mt-2 text-sm"><strong>{{ edge.source.name }}</strong> → <strong>{{ edge.target.name }}</strong></div>{% if edge.rationale %}<p class="mt-2 text-xs leading-relaxed text-base-content/70">{{ edge.rationale }}</p>{% endif %}</div>{% empty %}<p class="text-sm text-base-content/70">No relationships are registered for this object.</p>{% endfor %}</div></div></div>
+    {% endif %}
+    <div class="mt-6 grid gap-4 xl:grid-cols-2">
+      {% for layer_name, layer_nodes in ontology_layers.items %}
+        <section class="card card-border bg-base-100"><div class="card-body"><div class="flex items-center justify-between gap-3"><h2 class="card-title">{{ layer_name }}</h2><span class="badge badge-ghost">{{ layer_nodes|length }}</span></div><div class="mt-2 grid gap-2 sm:grid-cols-2">{% for node in layer_nodes %}<a class="rounded-box border border-base-300 p-3 text-sm transition hover:border-primary/50" href="{% url 'studio:dashboard' %}?section=knowledge&view=map&focus={{ node.slug }}"><span class="block font-semibold">{{ node.name }}</span><span class="mt-1 block text-xs text-base-content/65">{{ node.get_node_type_display }} · {{ node.owner }}</span></a>{% endfor %}</div></div></section>
+      {% endfor %}
+    </div>
+    <details class="collapse collapse-arrow mt-5 border border-base-300 bg-base-100"><summary class="collapse-title font-semibold">All typed relationships · {{ edges|length }}</summary><div class="collapse-content"><div class="overflow-x-auto"><table class="table table-sm"><caption class="sr-only">All knowledge-model relationships</caption><thead><tr><th>Source</th><th>Relationship</th><th>Target</th><th>Why it exists</th></tr></thead><tbody>{% for edge in edges %}<tr><td>{{ edge.source.name }}</td><td class="font-medium">{{ edge.get_relation_display }}</td><td>{{ edge.target.name }}</td><td class="max-w-xl text-xs text-base-content/70">{{ edge.rationale|default:"Registered dependency" }}</td></tr>{% endfor %}</tbody></table></div></div></details>
+  </div>
+</section>

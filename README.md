@@ -70,20 +70,20 @@ The assistant should finish by reporting the local URL and the results of `manag
 - **A live model is slow or unavailable** — switch back to **Deterministic demo**. The walkthrough does not require an external provider.
 - **Database tables are missing** — run `.venv/bin/python manage.py migrate`.
 
-## Eight-minute product walkthrough
+## Eight-minute guided walkthrough
 
-1. Open **Overview**. Establish the boundary: this is a governed sandbox design exercise using synthetic data, not a production deployment.
-2. Open **Start workflow**. The commercial-loan insurance example is already loaded.
+1. Open **Home**. Establish the boundary: this is a governed sandbox design exercise using synthetic data, not a production deployment.
+2. Open **Start review**. The commercial-loan insurance example is already loaded.
 3. Select **Discover catalog path**. Review the matched workflow, source products, registered agent, capability, owners, and typed relationships.
 4. Select **Use this catalog path**. The discovered intent is copied into the runnable reference case.
-5. Keep **Deterministic demo** selected and choose **Draft proposal**. This route is fast, repeatable, and requires no key.
+5. Keep **Deterministic demo** selected and choose **Draft and open proposal**. This route is fast, repeatable, and requires no key. The proposal opens in its own refresh-safe workspace.
 6. Use the proposal stages:
-   - **Specification** — inspect the outcome, deterministic policy checks, and expandable catalog binding registry.
-   - **Review** — download the versioned manifest and record separate business-owner and source-owner approvals.
-   - **Sandbox** — register the mocked agent, then run the synthetic evaluation.
+   - **Define** — inspect the outcome, deterministic policy checks, and connected catalog objects.
+   - **Approve** — download the versioned manifest and record separate business-owner and source-owner approvals.
+   - **Test** — register the mocked agent, then run the synthetic evaluation.
    - **Evidence** — confirm the sandbox gate, citations, access denial, evaluation results, latency, cost, hashes, and downloadable JSON evidence.
 7. Finish at **Sandbox evaluation passed**. Do not describe the result as production approval.
-8. If time remains, compare the **Catalog**, **Ontology map**, and **Connector model** to discuss which responsibilities belong to the institution and which belong to a future platform integration.
+8. If time remains, compare **Browse catalog** and **Relationship map** under **Knowledge model**, then open **System connections** to discuss which responsibilities belong to the institution and which belong to a future platform integration.
 
 What the walkthrough should make clear:
 
@@ -100,9 +100,24 @@ Useful terms:
 - **Sandbox** — an isolated synthetic execution used to test behavior and controls.
 - **Evidence artifact** — a hashed JSON record supporting review and audit.
 
+## Information architecture
+
+The interface is organized around user tasks instead of implementation layers:
+
+- **Home** shows the five-stage path, work to resume, and the next accountable action.
+- **Start review** progressively reveals discovery, request definition, and proposal drafting.
+- **Proposals** is the task list. Search and filter by status, risk, or next accountable role.
+- **Knowledge model** combines catalog browsing and typed relationship tracing without treating them as separate systems.
+- **System connections** explains model, source, control, and evidence boundaries. It is reference information, not a workflow step.
+- Workspace search returns catalog objects, proposals, and evidence findings in separate result groups.
+
+Each proposal has one canonical URL, such as `/proposals/9?stage=approve`. The `stage` query parameter preserves **Define**, **Approve**, **Test**, or **Evidence** across refreshes and shared links. The interface recommends one next action and names the role expected to perform it. Older dashboard links using `overview`, `compose`, `catalog`, or `ontology` remain compatible and open the corresponding new section.
+
+The current structure should still be validated with representative users. Use short tree-testing tasks such as “find the source owner’s approval queue,” “trace what the insurance workflow reads,” and “return to the evidence for a completed review.” Capture wrong turns and completion time before adding more navigation or agent types.
+
 ## Cross-domain discovery
 
-The Start workflow screen performs explainable semantic discovery across treasury management, retail banking, and commercial loan servicing. It first applies a simulated domain-and-classification access profile, expands recognizable business concepts, ranks approved catalog metadata, and follows typed ontology relationships from a workflow to its data products, agent instance, and inherited capabilities.
+The Start review screen performs explainable semantic discovery across treasury management, retail banking, and commercial loan servicing. It first applies a simulated domain-and-classification access profile, expands recognizable business concepts, ranks approved catalog metadata, and follows typed ontology relationships from a workflow to its data products, agent instance, and inherited capabilities.
 
 This small catalog does not need another vector database. The matcher is deterministic and inspectable: its curated search terms and domain concepts are stored alongside catalog metadata, while the graph supplies authoritative dependency paths. A weak match becomes a metadata gap instead of being forced into an unrelated workflow. Only the commercial-loan result can continue to the synthetic runtime; treasury and retail results intentionally stop at discovery because their runnable adapters are not implemented.
 
@@ -130,7 +145,7 @@ GOOGLE_API_KEY="..."
 ANTHROPIC_API_KEY="..."
 ```
 
-`GOOGLE_API_KEY` configures the Gemini Developer API with a Google AI Studio key. You can instead enter a replacement key on the Start workflow screen. By default, the server uses it to construct one provider client for that request and then clears the browser field. It does not write the key or raw provider errors to SQLite, logs, Django sessions, or proof events.
+`GOOGLE_API_KEY` configures the Gemini Developer API with a Google AI Studio key. You can instead enter a replacement key on the Start review screen. By default, the server uses it to construct one provider client for that request and then clears the browser field. It does not write the key or raw provider errors to SQLite, logs, Django sessions, or proof events.
 
 For a workshop, the user can explicitly select **Reuse in this browser tab**. That opt-in stores a provider-specific key in browser `sessionStorage`, restores it for later submissions in the same tab, and removes it when the user unchecks the option or closes the tab. The git-ignored `.env` file remains the recommended local setup; an enterprise model gateway with managed identity is the production direction. Process environment variables take precedence over `.env` values.
 
@@ -218,6 +233,7 @@ studio/providers/         Demo, Gemini, and Anthropic adapters
 studio/components/        Reusable server-rendered UI components
 studio/views.py           Thin HTML/HTMX entry points
 studio/templates/         daisyUI and Alpine presentation
+  studio/partials/        Task sections and the canonical proposal workspace
 studio/static/            Tailwind input/output and small browser behavior
 docs/architecture.md      Control boundaries and workshop discussion points
 ```

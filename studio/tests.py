@@ -57,9 +57,44 @@ class StudioJourneyTests(TestCase):
         self.assertContains(response, "Commercial loan insurance covenant review")
         self.assertContains(
             response,
-            "Turn a servicing question into a reviewable agent specification.",
+            "Move one business need from discovery to defensible evidence.",
         )
         self.assertContains(response, "Midland loan documents")
+
+    def test_legacy_navigation_aliases_open_the_new_knowledge_model(self) -> None:
+        ontology_response = self.client.get(
+            reverse("studio:dashboard"),
+            {"section": "ontology"},
+        )
+        catalog_response = self.client.get(
+            reverse("studio:dashboard"),
+            {"section": "catalog"},
+        )
+
+        self.assertContains(ontology_response, "section: 'knowledge'")
+        self.assertContains(ontology_response, "knowledgeView: 'map'")
+        self.assertContains(catalog_response, "section: 'knowledge'")
+        self.assertContains(catalog_response, "knowledgeView: 'browse'")
+
+    def test_knowledge_filters_and_workspace_search_have_distinct_jobs(self) -> None:
+        filtered_response = self.client.get(
+            reverse("studio:dashboard"),
+            {
+                "section": "knowledge",
+                "view": "browse",
+                "catalog_q": "Midland",
+            },
+        )
+        search_response = self.client.get(
+            reverse("studio:dashboard"),
+            {"section": "search", "q": "insurance"},
+        )
+
+        self.assertContains(filtered_response, "Midland loan documents")
+        self.assertContains(filtered_response, "View relationships")
+        self.assertContains(search_response, "Search catalog, proposals, and findings")
+        self.assertContains(search_response, "Catalog objects")
+        self.assertContains(search_response, "Evidence findings")
 
     def test_catalog_discovery_resolves_each_registered_business_domain(self) -> None:
         cases = (
@@ -144,8 +179,8 @@ class StudioJourneyTests(TestCase):
         self.assertContains(response, 'id="main-content"')
         self.assertContains(response, 'role="status"')
         self.assertContains(response, 'aria-label="Primary"')
-        self.assertContains(response, "data-menu-icon=", count=6)
-        self.assertContains(response, 'class="menu-icon size-5 shrink-0"', count=6)
+        self.assertContains(response, "data-menu-icon=", count=5)
+        self.assertContains(response, 'class="menu-icon size-5 shrink-0"', count=5)
         self.assertContains(response, 'aria-hidden="true"')
         self.assertContains(response, 'for="id_intent"')
         self.assertContains(response, 'for="id_requester_role"')
@@ -156,15 +191,12 @@ class StudioJourneyTests(TestCase):
             response,
             "Google requests use the Gemini Developer API with an AI Studio key.",
         )
-        self.assertContains(response, "studio/js/app.js?v=20260826-2")
+        self.assertContains(response, "studio/js/app.js?v=20260827-1")
         self.assertContains(response, '<caption class="sr-only">', html=False)
         self.assertContains(response, 'class="fragment-transition min-w-0"')
         self.assertContains(response, "collapse collapse-arrow")
         self.assertContains(response, "hx-disabled-elt=\"find button[type='submit']\"")
-        self.assertContains(
-            response,
-            'x-transition:enter="transition duration-150 ease-out"',
-        )
+        self.assertContains(response, "x-transition.opacity.duration.150ms")
         self.assertContains(response, "Draft proposal")
         self.assertContains(response, 'data-loading-label="Drafting proposal"')
         self.assertContains(response, 'id="compose-feedback"')
@@ -172,18 +204,17 @@ class StudioJourneyTests(TestCase):
         self.assertContains(response, "Draft request started")
         self.assertContains(response, "Preparing the request")
         self.assertContains(response, 'id="discovery-results"')
-        self.assertContains(response, "Find what exists before building anything")
+        self.assertContains(response, "Begin with the business need, not an agent.")
         self.assertContains(
             response,
             "Help commercial loan servicing analysts find insurance requirements and return cited findings for human review.",
         )
-        self.assertContains(response, "Choose a sample scenario")
+        self.assertContains(response, "Sample needs")
         self.assertContains(response, "Treasury RFP")
         self.assertContains(response, "Retail fee reversal")
         self.assertContains(response, "Loan insurance")
-        self.assertContains(response, "Show a metadata gap")
         self.assertContains(response, "Reuse in this browser tab")
-        self.assertContains(response, "A git-ignored <code>.env</code> file is recommended")
+        self.assertContains(response, "a git-ignored <code>.env</code> file is recommended")
         self.assertContains(response, "window.scrollTo({ top: 0, left: 0, behavior: 'auto' })")
         self.assertContains(response, "history.scrollRestoration = 'manual'")
         self.assertContains(response, "badge-info")
@@ -191,7 +222,7 @@ class StudioJourneyTests(TestCase):
         self.assertContains(response, "badge-error")
         self.assertContains(response, 'data-provider-route="gemini"')
         self.assertContains(response, 'data-provider-route="anthropic"')
-        self.assertContains(response, "data-provider-route-status", count=2)
+        self.assertContains(response, "data-provider-route-status", count=4)
         self.assertNotContains(response, "key at request")
         self.assertContains(
             response,
@@ -234,7 +265,13 @@ class StudioJourneyTests(TestCase):
             },
         )
 
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, 302)
+        proposal = WorkflowProposal.objects.get()
+        self.assertEqual(
+            response.url,
+            f"{proposal.get_absolute_url()}?stage=define",
+        )
+        response = self.client.get(response.url)
         self.assertContains(response, "badge-warning badge-soft")
         self.assertContains(response, 'class="proposal-transition space-y-5"')
         self.assertContains(
@@ -245,14 +282,13 @@ class StudioJourneyTests(TestCase):
         self.assertContains(response, "Download JSON manifest")
         self.assertContains(response, 'role="tablist"')
         self.assertContains(response, 'role="tabpanel"', count=4)
-        self.assertContains(response, "proposalStage: 'specification'")
-        self.assertContains(response, "Catalog binding registry")
+        self.assertContains(response, "proposalStage: 'define'")
+        self.assertContains(response, "Connected catalog objects")
         self.assertContains(
             response,
             '<th scope="col">Allowed action</th>',
         )
         self.assertContains(response, 'class="whitespace-nowrap text-sm font-medium"')
-        proposal = WorkflowProposal.objects.get()
         self.assertEqual(proposal.status, ProposalStatus.NEEDS_REVIEW)
         self.assertFalse(proposal.model_used)
         self.assertEqual(proposal.estimated_cost_usd, 0)
@@ -273,6 +309,49 @@ class StudioJourneyTests(TestCase):
             ]
         )
         self.assertNotIn("must-not-be-persisted", persisted_text)
+
+    def test_htmx_composition_redirects_to_the_canonical_proposal_workspace(self) -> None:
+        response = self.client.post(
+            reverse("studio:compose-proposal"),
+            {
+                "intent": (
+                    "Help servicing analysts find insurance requirements in commercial "
+                    "loan files and return citations for human review only."
+                ),
+                "requester_role": "Loan servicing product owner",
+                "provider": "demo",
+                "model_name": "deterministic-demo-v1",
+                "api_key": "",
+            },
+            HTTP_HX_REQUEST="true",
+        )
+
+        proposal = WorkflowProposal.objects.get()
+        self.assertEqual(response.status_code, 204)
+        self.assertEqual(
+            response["HX-Redirect"],
+            f"{proposal.get_absolute_url()}?stage=define",
+        )
+
+    def test_proposal_stage_is_addressable_and_refresh_safe(self) -> None:
+        proposal = compose_workflow_proposal(
+            intent=(
+                "Help servicing analysts find insurance requirements in commercial loan "
+                "files and return citations for human review only."
+            ),
+            requester_role="Loan servicing product owner",
+            provider_name=ProviderName.DEMO,
+            ephemeral_api_key="",
+            requested_model="deterministic-demo-v1",
+        )
+
+        response = self.client.get(
+            reverse("studio:proposal-detail", kwargs={"proposal_id": proposal.pk}),
+            {"stage": "test"},
+        )
+
+        self.assertContains(response, "proposalStage: 'test'")
+        self.assertContains(response, "3 · Test")
 
     @patch("studio.services.build_llm_provider")
     def test_read_only_model_alias_is_canonicalized_for_a_tool(self, provider_factory) -> None:
@@ -357,7 +436,7 @@ class StudioJourneyTests(TestCase):
             "btn btn-secondary btn-sm w-full whitespace-nowrap px-4 sm:w-auto",
         )
         self.assertContains(source_response, "Registering agent")
-        self.assertContains(source_response, "proposalStage: 'sandbox'")
+        self.assertContains(source_response, "proposalStage: 'test'")
         proposal.refresh_from_db()
         self.assertEqual(proposal.status, ProposalStatus.APPROVED)
         self.assertEqual(proposal.approvals.count(), 2)
@@ -427,7 +506,7 @@ class StudioJourneyTests(TestCase):
                 "api_key": "",
             },
         )
-        self.assertEqual(compose_response.status_code, 200)
+        self.assertEqual(compose_response.status_code, 302)
         proposal = WorkflowProposal.objects.get()
         manifest = proposal.manifests.get(version="1.0.0")
         manifest_payload = json.loads(manifest.content)
@@ -481,7 +560,7 @@ class StudioJourneyTests(TestCase):
         )
         self.assertContains(evaluation_response, "Sandbox evaluation passed")
         self.assertContains(evaluation_response, "proposalStage: 'evidence'")
-        self.assertContains(evaluation_response, "Retained proposal events")
+        self.assertContains(evaluation_response, "Activity history")
         agent.refresh_from_db()
         self.assertEqual(agent.status, SandboxStatus.EVALUATION_PASSED)
         self.assertEqual(agent.tool_invocations.count(), 4)
@@ -823,7 +902,7 @@ class AuditTrailTests(TestCase):
             },
         )
 
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, 302)
         proposal = WorkflowProposal.objects.get()
         audit_entry = LogEntry.objects.get(
             action=LogEntry.Action.CREATE,

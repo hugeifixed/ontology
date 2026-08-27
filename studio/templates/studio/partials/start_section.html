@@ -1,0 +1,77 @@
+<section data-section="start" x-show="section === 'start'" x-transition.opacity.duration.150ms x-cloak>
+  <div class="mx-auto max-w-6xl">
+    <div class="eyebrow">Start a governed review</div>
+    <h1 class="section-heading mt-3" tabindex="-1">Begin with the business need, not an agent.</h1>
+    <p class="mt-3 max-w-3xl text-base-content/70">Discover reusable catalog paths first. Then define the bounded request and choose how intent will be interpreted.</p>
+
+    <div class="mt-6 card card-border bg-base-100">
+      <div class="card-body gap-5 p-4 sm:p-6">
+        <ul class="steps w-full overflow-x-auto" aria-label="Proposal creation stages">
+          <li class="step" :class="reviewStep === 'discover' || reviewStep === 'define' || reviewStep === 'draft' ? 'step-primary' : ''">Discover</li>
+          <li class="step" :class="reviewStep === 'define' || reviewStep === 'draft' ? 'step-primary' : ''">Define</li>
+          <li class="step" :class="reviewStep === 'draft' ? 'step-primary' : ''">Draft</li>
+        </ul>
+        <div class="rounded-box bg-base-200 p-3 text-sm" role="status" aria-live="polite">
+          <span x-show="reviewStep === 'discover'"><strong>Find what exists.</strong> Search approved metadata across the three reference domains.</span>
+          <span x-show="reviewStep === 'define'" x-cloak><strong>Define the request.</strong> Confirm the outcome, requester, model route, and credential source.</span>
+          <span x-show="reviewStep === 'draft'" x-cloak><strong>Create the definition.</strong> The new proposal will open at its canonical URL.</span>
+        </div>
+      </div>
+    </div>
+
+    <div x-show="reviewStep === 'discover'" x-transition.opacity.duration.150ms>
+      <div class="mt-6 grid gap-6 xl:grid-cols-[0.8fr_1.2fr]">
+        <form class="card card-border bg-base-100" hx-post="{% url 'studio:discover' %}" hx-target="#discovery-results" hx-swap="innerHTML swap:100ms settle:150ms" hx-disabled-elt="find button[type='submit']">
+          {% csrf_token %}
+          <div class="card-body gap-5">
+            <div><div class="eyebrow">Step 1 · Discover</div><h2 class="card-title mt-1">Search the governed catalog</h2><p class="mt-2 text-sm text-base-content/70">This searches metadata and typed relationships. It does not open documents or invoke an agent.</p></div>
+            <div class="fieldset min-w-0"><label class="fieldset-legend" for="id_discovery_intent">Business need</label>{{ discovery_form.intent }}<p id="discovery-intent-help" class="label whitespace-normal leading-relaxed text-base-content/70">Use plain language. Do not enter customer information.</p></div>
+            <div class="fieldset min-w-0"><label class="fieldset-legend" for="id_discovery_profile">Simulated access profile</label>{{ discovery_form.access_profile }}<p id="discovery-profile-help" class="label whitespace-normal leading-relaxed text-base-content/70">The profile filters metadata before ranking. It does not grant access.</p></div>
+            <div><div class="text-xs font-semibold text-base-content/70">Sample needs</div><div class="mt-2 flex flex-wrap gap-2"><button type="button" class="btn btn-outline btn-sm" data-discovery-example="Help a treasury seller answer a cash-management RFP using approved proposal and product content.">Treasury RFP</button><button type="button" class="btn btn-outline btn-sm" data-discovery-example="Find the retail care-center procedure for a fee reversal question.">Retail fee reversal</button><button type="button" class="btn btn-outline btn-sm" data-discovery-example="Help commercial loan servicing analysts find insurance requirements and return cited findings for human review.">Loan insurance</button></div></div>
+            <button class="btn btn-primary btn-block" type="submit" data-loading-label="Searching catalog"><span class="loading loading-spinner loading-sm htmx-indicator" aria-hidden="true"></span><span class="request-label" aria-hidden="true"><span class="request-idle">Discover catalog path</span><span class="request-pending">Searching catalog</span></span></button>
+            <button class="btn btn-ghost btn-sm" type="button" @click="reviewStep = 'define'">Use the preloaded reference case</button>
+          </div>
+        </form>
+        <div id="discovery-results" class="fragment-transition min-w-0" aria-busy="false">
+          <div class="flex min-h-80 items-center justify-center rounded-box border border-dashed border-base-300 bg-base-100 p-8 text-center"><div class="max-w-sm"><div class="mx-auto grid size-12 place-items-center rounded-full bg-base-200 text-xl" aria-hidden="true">⌕</div><h2 class="mt-4 text-xl font-semibold">Your catalog path appears here</h2><p class="mt-2 text-sm text-base-content/70">The result explains the domain, scope, matched objects, dependency path, and whether the review can continue.</p></div></div>
+        </div>
+      </div>
+    </div>
+
+    <div x-show="reviewStep === 'define' || reviewStep === 'draft'" x-transition.opacity.duration.150ms x-cloak>
+      <form
+        class="card card-border mt-6 bg-base-100"
+        hx-post="{% url 'studio:compose-proposal' %}"
+        hx-target="#compose-feedback"
+        hx-swap="innerHTML swap:100ms settle:150ms"
+        hx-indicator="#compose-spinner"
+        hx-disabled-elt="find button[type='submit']"
+        aria-describedby="compose-safety-note compose-feedback"
+        autocomplete="off"
+        data-api-key-form
+        @htmx:before-request="reviewStep = 'draft'"
+        @htmx:after-request="if (!$event.detail.successful) reviewStep = 'define'"
+      >
+        {% csrf_token %}
+        <div class="card-body gap-5 p-4 sm:p-6">
+          <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between"><div><div class="eyebrow">Step 2 · Define</div><h2 class="card-title mt-1">Commercial loan insurance covenant review</h2><p class="mt-2 text-sm text-base-content/70">Confirm the bounded request. A successful draft opens as a separate proposal workspace.</p></div><button class="btn btn-ghost btn-sm shrink-0" type="button" @click="reviewStep = 'discover'">Back to discovery</button></div>
+          <div class="fieldset min-w-0"><label class="fieldset-legend" for="id_intent">Business intent</label>{{ proposal_form.intent }}<p id="intent-help" class="label whitespace-normal leading-relaxed text-base-content/70">Describe the outcome and limits; do not paste customer data.</p></div>
+          <div class="fieldset min-w-0"><label class="fieldset-legend" for="id_requester_role">Requesting role</label>{{ proposal_form.requester_role }}</div>
+          <div class="grid gap-4 sm:grid-cols-2">
+            <div class="fieldset min-w-0"><label class="fieldset-legend" for="provider">Intent interpreter</label><select id="provider" name="provider" class="select w-full" x-model="provider" @change="pickProvider($event.target.value)"><option value="demo">Deterministic demo</option><option value="gemini">Google Gemini — AI Studio</option><option value="anthropic">Anthropic Claude</option></select></div>
+            <div class="fieldset min-w-0"><label class="fieldset-legend" for="model-name">Model route</label><input id="model-name" name="model_name" class="input w-full font-mono text-sm" x-model="model" autocomplete="off"></div>
+          </div>
+          <div class="grid gap-3 sm:grid-cols-2" x-show="provider !== 'demo'" x-cloak aria-label="Available model credentials">
+            <div class="rounded-box border border-base-300 p-3" data-provider-route="gemini" data-environment-key="{{ provider_status.gemini|yesno:'true,false' }}"><div class="flex items-center gap-2 text-sm font-semibold"><span class="status status-sm {% if provider_status.gemini %}status-success{% else %}status-neutral{% endif %}" data-provider-route-indicator aria-hidden="true"></span>Gemini</div><div class="mt-1 ps-4 text-xs text-base-content/70" data-provider-route-status aria-live="polite">{% if provider_status.gemini %}Environment key available{% else %}No key configured{% endif %}</div></div>
+            <div class="rounded-box border border-base-300 p-3" data-provider-route="anthropic" data-environment-key="{{ provider_status.anthropic|yesno:'true,false' }}"><div class="flex items-center gap-2 text-sm font-semibold"><span class="status status-sm {% if provider_status.anthropic %}status-success{% else %}status-neutral{% endif %}" data-provider-route-indicator aria-hidden="true"></span>Anthropic</div><div class="mt-1 ps-4 text-xs text-base-content/70" data-provider-route-status aria-live="polite">{% if provider_status.anthropic %}Environment key available{% else %}No key configured{% endif %}</div></div>
+          </div>
+          <div class="provider-key-panel" x-show="provider !== 'demo'" x-transition x-cloak><div class="fieldset min-w-0"><label class="fieldset-legend" for="id_api_key">Ephemeral API key</label>{{ proposal_form.api_key }}<p id="api-key-help" class="label whitespace-normal leading-relaxed text-base-content/70">Leave blank when the matching environment variable is configured. The server does not store provider keys.</p><label class="mt-3 flex min-h-11 cursor-pointer items-start gap-3 rounded-box border border-base-300 p-3"><input type="checkbox" class="toggle toggle-sm mt-0.5" data-reuse-api-key><span class="min-w-0"><span class="block text-sm font-semibold">Reuse in this browser tab</span><span class="mt-1 block text-xs leading-relaxed text-base-content/70">Opt in to browser <code>sessionStorage</code>. Closing the tab forgets the key; a git-ignored <code>.env</code> file is recommended.</span></span></label><p class="mt-2 text-xs text-base-content/70" data-key-storage-status aria-live="polite"></p></div></div>
+          <div id="compose-safety-note" class="alert alert-info alert-soft text-sm"><span>Only intent and approved ontology metadata are sent to the selected model. Source documents and servicing records are excluded.</span></div>
+          <div id="compose-feedback" data-compose-feedback></div>
+          <button class="btn btn-primary btn-block" type="submit" aria-label="Draft proposal" data-loading-label="Drafting proposal"><span id="compose-spinner" class="loading loading-spinner loading-sm htmx-indicator" aria-hidden="true"></span><span class="request-label" aria-hidden="true"><span class="request-idle">Draft and open proposal</span><span class="request-pending">Drafting proposal</span></span></button>
+          <div class="alert alert-info alert-soft hidden items-start" data-compose-progress><span class="loading loading-ring loading-md shrink-0" aria-hidden="true"></span><div class="min-w-0 flex-1"><div class="flex flex-wrap items-baseline justify-between gap-2"><div class="font-semibold" data-compose-progress-title>Draft request started</div><div class="utility-type text-xs" aria-hidden="true" data-compose-progress-elapsed>Elapsed · 0s</div></div><p class="mt-1 text-sm" role="status" aria-live="polite" data-compose-progress-message>Preparing the request.</p></div></div>
+        </div>
+      </form>
+    </div>
+  </div>
+</section>

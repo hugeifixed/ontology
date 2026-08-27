@@ -3,8 +3,12 @@
 {% block title %}{{ proposal.title }} · Governed Workflow Studio{% endblock %}
 
 {% block body %}
-  <main id="main-content" class="mx-auto max-w-6xl p-4 sm:p-6 lg:p-8">
-    <a class="btn mb-5" href="{% url 'studio:dashboard' %}?section=proposals">Back to proposal registry</a>
+  <header class="navbar border-b border-base-300 bg-base-100 px-4 lg:px-8">
+    <div class="navbar-start"><a class="font-semibold" href="{% url 'studio:dashboard' %}?section=home">Governed workflow studio</a></div>
+    <nav class="navbar-end hidden gap-1 md:flex" aria-label="Workspace"><a class="btn btn-ghost btn-sm" href="{% url 'studio:dashboard' %}?section=start">Start review</a><a class="btn btn-ghost btn-sm" href="{% url 'studio:dashboard' %}?section=proposals">Proposals</a><a class="btn btn-ghost btn-sm" href="{% url 'studio:dashboard' %}?section=knowledge&view=browse">Knowledge model</a><a class="btn btn-ghost btn-sm" href="{% url 'studio:dashboard' %}?section=connections">System connections</a></nav>
+  </header>
+  <main id="main-content" class="mx-auto max-w-7xl p-4 sm:p-6 lg:p-8">
+    <div class="breadcrumbs mb-4 text-sm"><ul><li><a href="{% url 'studio:dashboard' %}?section=home">Home</a></li><li><a href="{% url 'studio:dashboard' %}?section=proposals">Proposals</a></li><li aria-current="page">Proposal #{{ proposal.id }}</li></ul></div>
     {% include "studio/partials/proposal_detail.html#proposal-detail" with instance="page" %}
   </main>
 {% endblock %}
